@@ -274,42 +274,59 @@ Rules
 
 ---
 
-Daily Workflow (EVERY MEMBER)
-
+Daily Workflow (Every Member)
+```bash
 git checkout dev
 git pull origin dev
 git checkout -b feature/short-description
+```
 
-Work → Commit → Push
+Work Cycle
 
+Work
+
+Commit
+
+Push
+
+```bash
 git add .
 git commit -m "Clear and descriptive commit message"
 git push origin feature/short-description
+```
 
-Open Pull Request:
+Open a Pull Request
 
-feature/short-description → dev
+Source: feature/short-description
+
+Target: dev
+
 
 
 ---
 
 Integration Workflow (DevOps / Integrator)
 
+```bash
 git checkout dev
 git pull origin dev
 docker-compose up --build
+```
 
-If stable:
+If Stable
 
+```bash
 git checkout main
 git merge dev
 git push origin main
+```
 
 
 ---
 
-6. Repository Structure
+Repository Structure
 
+```bash
 transcendence/
 ├── docker-compose.yml
 ├── .env.example
@@ -322,6 +339,26 @@ transcendence/
 ├── nginx/
 ├── .github/workflows/
 └── README.md
+```
+
+
+---
+
+50-Day Timeline
+
+Days 1–5 — Planning & Setup
+
+Project planning
+
+Team role assignment
+
+Repository initialization
+
+CI/CD basic setup
+```bash
+Environment configuration
+└── README.md
+```
 
 
 ---
