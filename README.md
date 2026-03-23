@@ -12,3 +12,8 @@
     - *css tailwind* for designing the user interface.
     - *react router* for multi page react support.
     - *axios* to communicate to the backend (http requests).
+- Frontend will do 4 main things:
+    - show login/register pages
+    - show the game UI
+    - talk to the backend
+    - switch between pages
