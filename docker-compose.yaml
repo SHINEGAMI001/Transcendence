@@ -1,0 +1,13 @@
+services:
+  frontend:
+    container_name: frontend
+    build: ./frontend
+    # expose: 
+    #   - "5173"
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    # depends_on: backend
+    volumes:
+      - ./frontend:/app #volume for the container
+      - /app/node_modules #keep necessary files on the container for vile to run

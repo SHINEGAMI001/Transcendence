@@ -1,0 +1,14 @@
+# this branch contains the docker infrastructure for the project
+
+## Whats working now :
+
+### Frontend
+- Frontend environment setuped (React app + Javascript + Vite development server)
+- React app running on the browser [http://localhost:5173]()
+- Frontend developer can start working on dynamic user interface.
+- All the necessary files to code are ready to use in [./frontend/](./frontend) directory
+- Docker volume (bind mounts) for react app is ready to use, you can code directly from the src directory [frontend/src](./frontend/src) on your host device without needing to rebuild the container for changes to take.
+- Also some usefull tools (you will probably use) are installed like:
+    - *css tailwind* for designing the user interface.
+    - *react router* for multi page react support.
+    - *axios* to communicate to the backend (http requests).
