@@ -31,8 +31,9 @@ The application must allow users to:
 ## Frontend
 
 * React (Vite)
-* TypeScript
+* JavaScript
 * Tailwind CSS
+* React Router
 * Canvas for the game
 * WebSocket client (browser WebSocket API)
 
