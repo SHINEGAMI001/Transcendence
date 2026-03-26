@@ -17,3 +17,13 @@
     - show the game UI
     - talk to the backend
     - switch between pages
+
+### Backend
+- Backend enviroment setuped (Django project + python)
+- Necessary packages installed :
+    - *Django framerwok*
+    - *djangorestframework* for rest api
+    - *Psycopg2-binary* for connecting to the database
+- Django project server is installed and ready to use, you will find it running on http://localhost:8000
+- Same as frontend docker bind mount volumes setuped on [backend/src](./backend/src), you can code directly from that directory without needing to rebuild the container for changes to take place (server reloads whenever there is a change in code).
+

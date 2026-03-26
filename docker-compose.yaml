@@ -7,7 +7,34 @@ services:
     ports:
       - "5173:5173"
     restart: unless-stopped
-    # depends_on: backend
+    depends_on: 
+      - backend
     volumes:
-      - ./frontend:/app #volume for the container
+      - ./frontend:/fapp #volume for the container
       - /app/node_modules #keep necessary files on the container for vile to run
+
+  backend:
+    container_name: backend
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/bapp
+    depends_on:
+      - db
+    restart: unless-stopped
+  
+  db:
+    image: postgres:latest
+    container_name : postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: dbdb
+    restart: on-failure
+    volumes:
+      - db_data:/var/lib/postgresql/18/docker
+    #port for postgres 5432
+
+volumes:
+  db_data:
