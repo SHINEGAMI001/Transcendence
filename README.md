@@ -4,9 +4,9 @@
 
 ### Frontend
 - Frontend environment setuped (React app + Javascript + Vite development server)
-- React app running on the browser [http://localhost:5173]()
+- React app running on the browser [localhost:5173](http://localhost:5173)
 - Frontend developer can start working on dynamic user interface.
-- All the necessary files to code are ready to use in [./frontend/](./frontend) directory
+- All the necessary files to code are ready to use in [frontend/](./frontend) directory
 - Docker volume (bind mounts) for react app is ready to use, you can code directly from the src directory [frontend/src](./frontend/src) on your host device without needing to rebuild the container for changes to take.
 - Also some usefull tools (you will probably use) are installed like:
     - *css tailwind* for designing the user interface.
@@ -24,6 +24,35 @@
     - *Django framerwok*
     - *djangorestframework* for rest api
     - *Psycopg2-binary* for connecting to the database
-- Django project server is installed and ready to use, you will find it running on http://localhost:8000
+- Django project server is installed and ready to use, you will find it running on [localhost:8000](http://localhost:8000)
 - Same as frontend docker bind mount volumes setuped on [backend/src](./backend/src), you can code directly from that directory without needing to rebuild the container for changes to take place (server reloads whenever there is a change in code).
 
+### Postgres Database
+- Postgres db added to `docker-compose.yaml`
+- Database configured and connected to the backend (Django server), u can check [backend/src/settings.py](./backend/src/settings.py)
+- Named volume setuped for database (migration is necessary for datatables updates on your machine)
+- All the necessary system data tables for user authentication are created and connected to django (needed for login, registration and later the game, matches and any needed data table for the project is connected to the *auth_user* datatable)
+- superuser account configured for the database admin panel (access it thru [localhost:8000/admin](http://localhost:8000/admin)), but before that:
+```bash
+docker compose up --build -d #build and run containers in detach mode
+docker exec -it backend bash #access the container
+python manage.py migrate #needed for datatables updates on ur machine (u will not see any dat tables if u didnt run this command)
+```
+- Now u can see all the datatables models that exists in the admin panel
+- You can create datatables or add fields to a datatable with models, for more information about [models](https://docs.djangoproject.com/en/6.0/topics/db/models/)
+- You can setup a super user to access [admin panel](http://localhost:8000/admin) with:
+```bash
+docker compose up --build -d
+docker exec -it backend bash
+python manage.py createsuperuser # run inside the container
+```
+- Or use an exesting root account
+    - user : root
+    - password : passpass2001
+- a small note u should always make migrations after adding a model (adding data table or a field into the data table or updating anything in the database) with:
+```bash
+#inside backend container
+python manage.py makemigrations
+python manage.py migrate
+# after creating models django knows but database doesnt so u should always do this for updates to take place in database
+```

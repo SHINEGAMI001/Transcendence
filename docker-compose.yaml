@@ -11,7 +11,7 @@ services:
       - backend
     volumes:
       - ./frontend:/fapp #volume for the container
-      - /app/node_modules #keep necessary files on the container for vile to run
+      - /fapp/node_modules #keep necessary files on the container for vile to run
 
   backend:
     container_name: backend
@@ -20,6 +20,8 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/bapp
+    env_file:
+      - .env
     depends_on:
       - db
     restart: unless-stopped
@@ -27,10 +29,8 @@ services:
   db:
     image: postgres:latest
     container_name : postgres
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: dbdb
+    env_file:
+      - .env
     restart: on-failure
     volumes:
       - db_data:/var/lib/postgresql/18/docker
