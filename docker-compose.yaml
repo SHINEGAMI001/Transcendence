@@ -1,0 +1,40 @@
+services:
+  frontend:
+    container_name: frontend
+    build: ./frontend
+    # expose: 
+    #   - "5173"
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    depends_on: 
+      - backend
+    volumes:
+      - ./frontend:/fapp #volume for the container
+      - /fapp/node_modules #keep necessary files on the container for vile to run
+
+  backend:
+    container_name: backend
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/bapp
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+  
+  db:
+    image: postgres:latest
+    container_name : postgres
+    env_file:
+      - .env
+    restart: on-failure
+    volumes:
+      - db_data:/var/lib/postgresql/18/docker
+    #port for postgres 5432
+
+volumes:
+  db_data:
