@@ -10,7 +10,7 @@ git branch -r #check available remote branches
 ```bash
 git checkout dev #switch to branch
 git pull origin dev #for branch updates
-git checkout -r feature/UI_example #create and switch to branch
+git checkout -b feature/UI_example #create and switch to branch
 ```
 - once u finished ur feature and made sure your code is stable and ready to merge open a pull request for code review and merging into dev branch (we dont merge/push to main branch until the project is stable)
 
