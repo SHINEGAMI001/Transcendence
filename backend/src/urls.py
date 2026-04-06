@@ -19,5 +19,6 @@ from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
 
 urlpatterns = [
-    path('admin/', admin.site.urls)
+    path('admin/', admin.site.urls),
+    path('api/', include('users.urls'))
 ]

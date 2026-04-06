@@ -24,6 +24,7 @@
     - *Django framerwok*
     - *djangorestframework* for rest api
     - *Psycopg2-binary* for connecting to the database
+    - *django-cors-headrs* allowing differnet origins to connect securely to backend needed for frontend requests
 - Django project server is installed and ready to use, you will find it running on [localhost:8000](http://localhost:8000)
 - Same as frontend docker bind mount volumes setuped on [backend/src](./backend/src), you can code directly from that directory without needing to rebuild the container for changes to take place (server reloads whenever there is a change in code).
 
@@ -31,28 +32,28 @@
 - Postgres db added to `docker-compose.yaml`
 - Database configured and connected to the backend (Django server), u can check [backend/src/settings.py](./backend/src/settings.py)
 - Named volume setuped for database (migration is necessary for datatables updates on your machine)
-- All the necessary system data tables for user authentication are created and connected to django (needed for login, registration and later the game, matches and any needed data table for the project is connected to the *auth_user* datatable)
-- superuser account configured for the database admin panel (access it thru [localhost:8000/admin](http://localhost:8000/admin)), but before that:
+- All the necessary system data tables for user authentication are created and connected to django (needed for login, registration and later the game, matches and any needed data table for the project is connected to the *auth_user_model* datatable)
+- admin panel for data base navigation is ready to use (access it thru [localhost:8000/admin](http://localhost:8000/admin)), but before that:
+    - You must setup a super user to access [admin panel](http://localhost:8000/admin) with:
 ```bash
-docker compose up --build -d #build and run containers in detach mode
-docker exec -it backend bash #access the container
-python manage.py migrate #needed for datatables updates on ur machine (u will not see any dat tables if u didnt run this command)
+    docker compose up --build -d
+    docker exec -it backend bash
+    python manage.py createsuperuser # run inside the container
+```
+- then
+```bash
+    docker compose up --build -d #build and run containers in detach mode
+    docker exec -it backend bash #access the container
+    python manage.py migrate #needed for datatables updates on ur machine (u will not see any data tables if u didnt run this command)
 ```
 - Now u can see all the datatables models that exists in the admin panel
 - You can create datatables or add fields to a datatable with models, for more information about [models](https://docs.djangoproject.com/en/6.0/topics/db/models/)
-- You can setup a super user to access [admin panel](http://localhost:8000/admin) with:
-```bash
-docker compose up --build -d
-docker exec -it backend bash
-python manage.py createsuperuser # run inside the container
-```
-- Or use an exesting root account
-    - user : root
-    - password : passpass2001
-- a small note u should always make migrations after adding a model (adding data table or a field into the data table or updating anything in the database) with:
+- a small note u should always make migrations after adding a model (adding data table or a field into the data table or updating the database structure) with:
 ```bash
 #inside backend container
-python manage.py makemigrations
-python manage.py migrate
-# after creating models django knows but database doesnt so u should always do this for updates to take place in database
+python manage.py makemigrations #creates database blueprint
+python manage.py migrate #runs sql commands to create that blueprint
+ #after creating models django knows but database doesnt so u should always do this for updates to take place in database (this doesnt apply for actual data only when database structure changes)
 ```
+### backend available apis
+- [POST] localhost:8000/api/auth/register
