@@ -59,6 +59,15 @@ CORS_ALLOWED_ORIGINS = [
     # "http://localhost:8000"
 ]
 
+#allow creds from frontend (required for cookies)
+CORS_ALLOW_CREDENTIALS = True
+
+#allow backend to send cookies to frontend
+SESSION_COOKIE_SAMESITE = "Lax"
+
+#allow backend to send cookies over http, True if https
+SESSION_COOKIE_SECURE = False
+
 ROOT_URLCONF = 'src.urls'
 
 TEMPLATES = [
@@ -92,7 +101,7 @@ DATABASES = {
         'PORT': os.getenv("POSTGRES_PORT")
     }
 }
-
+# default user model
 AUTH_USER_MODEL = 'users.User'
 
 

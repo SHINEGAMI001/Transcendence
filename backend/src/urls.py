@@ -18,7 +18,20 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
 
+def home(request):
+    data = {
+            "message" : "django app is up",
+            "usage/" : {
+                  "admin" : "localhost:8000/admin",
+                  "register" : "localhost:8000/api/auth/register",
+                  "login" : "localhost:8000/api/auth/login",
+                  "profile" : "localhost:8000/api/profile/me"
+                  }
+            }
+    return JsonResponse(data)
+
 urlpatterns = [
+    path('', home),
     path('admin/', admin.site.urls),
     path('api/', include('users.urls'))
 ]
