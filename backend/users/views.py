@@ -36,9 +36,9 @@ def register(request):
         user = get_user_model()
 
         if user.objects.filter(username=request.data["username"]).exists():
-                return Response({"error message" : "username already exists"})
+                return Response({"error message" : "username already exists"}, status=400)
         elif user.objects.filter(email=request.data["email"]).exists():
-               return Response({"error message" : "email address already exists"})
+               return Response({"error message" : "email address already exists"}, status=400)
         else:
                 user.objects.create_user(
                         username=request.data['username'],
