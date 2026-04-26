@@ -220,7 +220,7 @@ function Login() {
 
           {/* Footer */}
           <p className="text-center text-sm text-text-secondary mt-6">
-            Don't have an account?{' '}
+            Don't have an account?{'POSTGRES_DB '}
             <Link
               to="/register"
               className="text-accent hover:text-accent-light transition-colors font-medium"

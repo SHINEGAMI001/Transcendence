@@ -16,7 +16,8 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -67,6 +68,9 @@ SESSION_COOKIE_SAMESITE = "Lax"
 
 #allow backend to send cookies over http, True if https
 SESSION_COOKIE_SECURE = False
+
+#prevent reading session cookies from browser(XSS attack)
+SESSION_COOKIE_HTTPONLY = True
 
 ROOT_URLCONF = 'src.urls'
 

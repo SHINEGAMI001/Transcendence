@@ -60,3 +60,4 @@ python manage.py migrate #runs sql commands to create that blueprint
 - [POST] localhost:8000/api/auth/register
 - [POST] localhost:8000/api/auth/login
 - [GET] localhost:8000/api/profile/me
+- [PUT] localhost:8000/api/avatar/update

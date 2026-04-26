@@ -90,10 +90,37 @@ def profile(request):
           "xp" : request.user.xp,
           "level" : request.user.level,
           "wins" : request.user.wins,
-          "losses" : request.user.losses
+          "losses" : request.user.losses,
+          "avatar" : request.user.avatar.url,
     }
 
     #debug
 
     return Response(response)
 
+@api_view(['PUT'])
+def update_avatar(request):
+      if not request.user.is_authenticated: # check if user connected first
+            return Response({"error message" : "user not online"}, status=401)
+      avatarr = request.FILES.get('avatar') # get the requested avatar
+      if not avatarr:
+            return Response({"error message" : "no image uploaded"}, status=400)
+      # print(f"file format : {avatarr.content_type}", flush=True)
+
+      allowed_formats = ['image/jpg', 'image/jpeg', 'image/gif', 'image/png', 'image/webp']
+      if avatarr.content_type not in allowed_formats: # validate image type
+            return Response({"error message" : "file format not allowed"}, status=400)
+      
+      max_size = 7 * 1024 * 1024
+      if avatarr.size > max_size: # check image size
+            return Response({"error message" : "max image size 7MB"}, status=413)
+      
+      if request.user.avatar and request.user.avatar.name != 'default/speed.gif':
+            request.user.avatar.delete() # delete old avatar
+      request.user.avatar = avatarr # update and save avatar into user profile
+      request.user.save()
+
+      return Response({"message" : "avatar updated succesfuly"}, status=200)
+
+      
+      
