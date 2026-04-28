@@ -57,7 +57,10 @@ python manage.py migrate #runs sql commands to create that blueprint
 ```
 ### backend available apis
 * check [views.py](backend/users/views.py) for views functions and [urls.py](backend/users/urls.py) for url routing
-- [POST] localhost:8000/api/auth/register
-- [POST] localhost:8000/api/auth/login
-- [GET] localhost:8000/api/profile/me
-- [PUT] localhost:8000/api/avatar/update
+- available endpoints:
+    - [POST] localhost:8000/api/auth/register
+    - [POST] localhost:8000/api/auth/login
+    - [GET] localhost:8000/api/profile/me
+    - [PUT] localhost:8000/api/avatar/update
+    - [GET] localhost:8000/api/auth/logout
+    - [PUT] localhost:8000/api/profile/update

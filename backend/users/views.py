@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 
 def users(request):
@@ -74,10 +74,6 @@ def login_view(request):
 @api_view(['GET'])
 def profile(request):
 
-#     print("session key :", request.session.session_key)
-#     print("user :", request.user)
-#     print("auth :", request.user.is_authenticated)
-
     if not request.user.is_authenticated: # check if user logged in
         return Response({"error_message" : "user not logged in"}, status=401)
     
@@ -94,10 +90,9 @@ def profile(request):
           "avatar" : request.user.avatar.url,
     }
 
-    #debug
-
     return Response(response)
 
+# update avatar api
 @api_view(['PUT'])
 def update_avatar(request):
       if not request.user.is_authenticated: # check if user connected first
@@ -122,5 +117,43 @@ def update_avatar(request):
 
       return Response({"message" : "avatar updated succesfuly"}, status=200)
 
-      
-      
+
+# logout api
+@api_view(['GET'])
+def logout_view(request):
+        if request.user.is_authenticated:
+                logout(request)
+                return Response({"message": "user logged out successfully"}, status=200)
+
+        return Response({"error message": "user not logged in"}, status=401)
+
+# update profile api
+@api_view(['GET', 'PUT'])
+def update_profile(request):
+        if not request.user.is_authenticated:
+                return Response({"error message": "user not online"}, status=401)
+        
+        username = request.data.get("username")
+        email = request.data.get("email")
+        
+        if not username and not email:
+                return Response({"error message": "bad request: expected <username> or <email>"}, status=400)
+        
+        User = get_user_model()
+        
+        if username:
+                # Allow if username is same as current user
+                if username != request.user.username and User.objects.filter(username=username).exists():
+                        return Response({'error message': 'username taken'}, status=409)
+                request.user.username = username
+                request.user.save()
+                return Response({"message": "username updated successfully"}, status=200)
+        
+        if email:
+                # Allow if email is same as current user email
+                if email != request.user.email and User.objects.filter(email=email).exists():
+                        return Response({"error message": "email taken"}, status=409)
+                request.user.email = email
+                request.user.save()
+                return Response({"message": "email updated successfully"}, status=200)
+
