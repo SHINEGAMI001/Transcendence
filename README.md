@@ -56,4 +56,8 @@ python manage.py migrate #runs sql commands to create that blueprint
  #after creating models django knows but database doesnt so u should always do this for updates to take place in database (this doesnt apply for actual data only when database structure changes)
 ```
 ### backend available apis
+* check [views.py](backend/users/views.py) for views functions and [urls.py](backend/users/urls.py) for url routing
 - [POST] localhost:8000/api/auth/register
+- [POST] localhost:8000/api/auth/login
+- [GET] localhost:8000/api/profile/me
+- [PUT] localhost:8000/api/avatar/update
