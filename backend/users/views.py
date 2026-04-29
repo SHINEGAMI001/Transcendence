@@ -157,3 +157,19 @@ def update_profile(request):
                 request.user.save()
                 return Response({"message": "email updated successfully"}, status=200)
 
+
+# Delete profile api
+@api_view(['GET', 'DELETE'])
+def delete_view(request):
+        if not request.user.is_authenticated:
+                return Response({"error message" : "user not online"}, status=401)
+        # print(f"user methods: {dir(request.user)}", flush=True)
+        request.user.delete()
+        logout(request)
+        return Response({"message" : "user deleted"}, status=200)
+
+
+# Advanced search api
+# @api_view(['GET'])
+# def advanced_search(request):
+       
