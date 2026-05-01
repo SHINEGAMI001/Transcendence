@@ -23,6 +23,7 @@ import Register from './pages/Register'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Profile from './pages/Profile'
+import Queue from './pages/Queue'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
           the child routes or redirects to /login */}
       <Route element={<ProtectedRoute />}>
         <Route path="/profile" element={<Profile />} />
+        <Route path="/queue" element={<Queue />} />
         {/* Add more protected routes here later, e.g.:
             <Route path="/game" element={<Game />} />
             <Route path="/settings" element={<Settings />} />

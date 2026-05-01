@@ -59,6 +59,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", # allow frontend react connection
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+]
+
 #allow creds from frontend (required for cookies)
 CORS_ALLOW_CREDENTIALS = True
 
