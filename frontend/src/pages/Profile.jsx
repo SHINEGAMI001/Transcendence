@@ -27,9 +27,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import AvatarUploader from '../components/AvatarUploader'
 import axios from 'axios'
 
 const API_BASE = 'http://localhost:8000/'
+const BACKEND_ORIGIN = 'http://localhost:8000'
 
 function Profile() {
   const navigate = useNavigate()
@@ -43,6 +45,16 @@ function Profile() {
 
   // Error message if fetch fails (non-401 errors)
   const [error, setError] = useState('')
+  // Cache-buster for avatar image — forces re-fetch from server when updated
+  const [avatarCacheBuster, setAvatarCacheBuster] = useState(0)
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false)
+  const [editUsername, setEditUsername] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [savingUsername, setSavingUsername] = useState(false)
+  const [savingEmail, setSavingEmail] = useState(false)
+  const [editMessage, setEditMessage] = useState({ type: '', text: '' })
 
   /**
    * fetchProfile — GET /api/profile/me
@@ -75,10 +87,108 @@ function Profile() {
     }
   }
 
+  // Handle successful avatar upload: refresh profile and bump cache-buster
+  function handleAvatarUploadSuccess() {
+    setAvatarCacheBuster((p) => p + 1)
+    fetchProfile()
+  }
+
+  // Toggle edit mode and pre-fill form fields with current values
+  function toggleEditMode() {
+    if (!isEditing && user) {
+      setEditUsername(user.username || '')
+      setEditEmail(user.email || '')
+      setEditMessage({ type: '', text: '' })
+    }
+    setIsEditing(!isEditing)
+  }
+
+  /**
+   * handleSaveUsername — placeholder for backend integration
+   * TODO: PUT /api/profile/update with { username: editUsername }
+   */
+  async function handleSaveUsername() {
+    if (!editUsername.trim()) {
+      setEditMessage({ type: 'error', text: 'Username cannot be empty.' })
+      return
+    }
+    if (editUsername === user?.username) {
+      setEditMessage({ type: 'error', text: 'Username is the same as current.' })
+      return
+    }
+    setSavingUsername(true)
+    setEditMessage({ type: '', text: '' })
+    try {
+      // TODO: Replace with actual backend call when ready
+      // await axios.put(`${API_BASE}api/profile/update`, { username: editUsername }, { withCredentials: true })
+      await new Promise((r) => setTimeout(r, 800)) // Simulate network delay
+      setEditMessage({ type: 'success', text: 'Username updated! (demo — backend not connected yet)' })
+      setUser((prev) => ({ ...prev, username: editUsername }))
+      setTimeout(() => setEditMessage({ type: '', text: '' }), 3000)
+    } catch (err) {
+      setEditMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update username.' })
+    } finally {
+      setSavingUsername(false)
+    }
+  }
+
+  /**
+   * handleSaveEmail — placeholder for backend integration
+   * TODO: PUT /api/profile/update with { email: editEmail }
+   */
+  async function handleSaveEmail() {
+    if (!editEmail.trim()) {
+      setEditMessage({ type: 'error', text: 'Email cannot be empty.' })
+      return
+    }
+    if (editEmail === user?.email) {
+      setEditMessage({ type: 'error', text: 'Email is the same as current.' })
+      return
+    }
+    setSavingEmail(true)
+    setEditMessage({ type: '', text: '' })
+    try {
+      // TODO: Replace with actual backend call when ready
+      // await axios.put(`${API_BASE}api/profile/update`, { email: editEmail }, { withCredentials: true })
+      await new Promise((r) => setTimeout(r, 800)) // Simulate network delay
+      setEditMessage({ type: 'success', text: 'Email updated! (demo — backend not connected yet)' })
+      setUser((prev) => ({ ...prev, email: editEmail }))
+      setTimeout(() => setEditMessage({ type: '', text: '' }), 3000)
+    } catch (err) {
+      setEditMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update email.' })
+    } finally {
+      setSavingEmail(false)
+    }
+  }
+
+  /**
+   * handleLogout — dummy logout (frontend only)
+   * Clears auth state and redirects to login.
+   * TODO: Call POST /api/auth/logout on the backend when ready.
+   */
+  function handleLogout() {
+    setIsLoggedIn(false)
+    navigate('/login', {
+      state: { message: 'You have been logged out.' },
+    })
+  }
+
   // Fetch profile data on mount
   useEffect(() => {
     fetchProfile()
   }, [])
+
+  /**
+   * getAvatarUrl — builds the full avatar URL
+   * Backend returns relative paths like "/media/avatars/file.png"
+   * so we prepend the backend origin to make them loadable.
+   */
+  function getAvatarUrl() {
+    if (!user?.avatar) return null
+    // If already absolute, use as-is; otherwise prepend backend origin
+    if (user.avatar.startsWith('http')) return `${user.avatar}?t=${avatarCacheBuster}`
+    return `${BACKEND_ORIGIN}${user.avatar}?t=${avatarCacheBuster}`
+  }
 
   /**
    * formatDate — converts ISO date string to a readable format
@@ -94,6 +204,9 @@ function Profile() {
       minute: '2-digit',
     })
   }
+
+  // The user viewing their own profile is always online (they're authenticated)
+  const isOnline = true
 
   // --- Loading State ---
   if (loading) {
@@ -148,25 +261,203 @@ function Profile() {
             Shows avatar initial, username, and email
             ======================================== */}
         <div className="bg-dark-surface/80 backdrop-blur-xl border border-dark-border rounded-2xl p-8 shadow-2xl shadow-accent-glow/10">
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            {/* Avatar — first letter of username */}
-            <div className="w-20 h-20 rounded-full bg-accent/20 border-2 border-accent/50 flex items-center justify-center shrink-0">
-              <span className="text-3xl font-bold text-accent">
-                {user?.username?.charAt(0).toUpperCase() || '?'}
+          <div className="flex flex-col sm:flex-row items-start gap-6">
+            {/* Avatar with online status indicator */}
+            <div className="relative shrink-0">
+              {getAvatarUrl() ? (
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-accent/50 flex items-center justify-center shadow-lg shadow-accent/20">
+                  <img
+                    src={getAvatarUrl()}
+                    alt={`${user.username}'s avatar`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.parentElement.classList.add('bg-accent/20')
+                      e.target.parentElement.innerHTML = `<span class="text-3xl font-bold text-accent">${user?.username?.charAt(0).toUpperCase() || '?'}</span>`
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-accent/20 border-2 border-accent/50 flex items-center justify-center shadow-lg shadow-accent/20">
+                  <span className="text-3xl font-bold text-accent">
+                    {user?.username?.charAt(0).toUpperCase() || '?'}
+                  </span>
+                </div>
+              )}
+              {/* Online/Offline status dot */}
+              <span
+                className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-dark-surface ${
+                  isOnline ? 'bg-green-500' : 'bg-gray-500'
+                }`}
+                title={isOnline ? 'Online' : 'Offline'}
+              >
+                {isOnline && (
+                  <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+                )}
               </span>
             </div>
 
-            <div className="text-center sm:text-left">
-              <h1 className="text-2xl font-bold text-text-primary">
-                {user?.username}
-              </h1>
+            {/* User info + action buttons */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold text-text-primary">
+                  {user?.username}
+                </h1>
+                {/* Online/Offline text badge */}
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    isOnline
+                      ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                      : 'bg-gray-500/15 text-gray-400 border border-gray-500/30'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isOnline ? 'bg-green-400' : 'bg-gray-400'
+                    }`}
+                  />
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
+              </div>
               <p className="text-text-secondary mt-1">{user?.email}</p>
               <span className="inline-block mt-2 px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full border border-accent/20">
                 Player #{user?.id}
               </span>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-3 mt-4">
+                <button
+                  onClick={toggleEditMode}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                    isEditing
+                      ? 'bg-dark-border text-text-primary hover:bg-dark-border/80'
+                      : 'bg-accent hover:bg-accent-light text-white'
+                  }`}
+                >
+                  {isEditing ? (
+                    <>
+                      <span>✕</span> Close Editor
+                    </>
+                  ) : (
+                    <>
+                      <span>✏</span> Edit Profile
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all duration-200 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>⏻</span> Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* ========================================
+            EDIT PROFILE SECTION — Shown when isEditing is true
+            Contains: Avatar uploader, Username editor, Email editor
+            ======================================== */}
+        {isEditing && (
+          <div className="bg-dark-surface/80 backdrop-blur-xl border border-accent/20 rounded-2xl p-6 space-y-6 animate-in">
+            <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+              <span className="text-accent"></span> Edit Profile
+            </h2>
+
+            {/* Edit feedback message */}
+            {editMessage.text && (
+              <div
+                className={`p-3 rounded-lg text-sm font-medium ${
+                  editMessage.type === 'success'
+                    ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                    : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                }`}
+              >
+                {editMessage.type === 'success' ? '✓ ' : '✕ '}
+                {editMessage.text}
+              </div>
+            )}
+
+            {/* --- Avatar Upload --- */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+                Profile Picture
+              </label>
+              <AvatarUploader
+                currentAvatar={getAvatarUrl()}
+                onUploadSuccess={handleAvatarUploadSuccess}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-dark-border/50" />
+
+            {/* --- Username Edit --- */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+                Username
+              </label>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  placeholder="Enter new username"
+                  disabled={savingUsername}
+                  className="flex-1 px-4 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary text-sm placeholder-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all disabled:opacity-50"
+                />
+                <button
+                  onClick={handleSaveUsername}
+                  disabled={savingUsername || !editUsername.trim()}
+                  className="px-4 py-2.5 bg-accent hover:bg-accent-light text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shrink-0"
+                >
+                  {savingUsername ? (
+                    <>
+                      <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-text-muted">Current: {user?.username}</p>
+            </div>
+
+            {/* --- Email Edit --- */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+                Email Address
+              </label>
+              <div className="flex gap-3">
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="Enter new email"
+                  disabled={savingEmail}
+                  className="flex-1 px-4 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-text-primary text-sm placeholder-text-muted focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/25 transition-all disabled:opacity-50"
+                />
+                <button
+                  onClick={handleSaveEmail}
+                  disabled={savingEmail || !editEmail.trim()}
+                  className="px-4 py-2.5 bg-accent hover:bg-accent-light text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer shrink-0"
+                >
+                  {savingEmail ? (
+                    <>
+                      <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save'
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-text-muted">Current: {user?.email}</p>
+            </div>
+          </div>
+        )}
 
         {/* ========================================
             STATS GRID — Game statistics
