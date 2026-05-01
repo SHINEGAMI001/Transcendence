@@ -64,3 +64,4 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [PUT] localhost:8000/api/avatar/update
     - [GET] localhost:8000/api/auth/logout
     - [PUT] localhost:8000/api/profile/update
+    - [DELETE] localhost:8000/api/profile/delete

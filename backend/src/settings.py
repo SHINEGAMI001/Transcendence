@@ -57,24 +57,24 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173", # allow frontend react connection
-    # "http://localhost:8000"
-]
-
-CSRF_ALLOWED_ORIGINS = [
-    "http://localhost:5173"
 ]
 
 #allow creds from frontend (required for cookies)
 CORS_ALLOW_CREDENTIALS = True
+
+#prevent reading session cookies with js from browser(XSS attack)
+SESSION_COOKIE_HTTPONLY = True
+
+CSRF_ALLOWED_ORIGINS = [
+    "http://localhost:5173" #allow csrf tokens from this domain
+]
+
 
 #allow backend to send cookies to frontend
 SESSION_COOKIE_SAMESITE = "Lax"
 
 #allow backend to send cookies over http, True if https
 SESSION_COOKIE_SECURE = False
-
-#prevent reading session cookies from browser(XSS attack)
-SESSION_COOKIE_HTTPONLY = True
 
 ROOT_URLCONF = 'src.urls'
 
