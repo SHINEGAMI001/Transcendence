@@ -168,8 +168,4 @@ def delete_view(request):
         logout(request)
         return Response({"message" : "user deleted"}, status=200)
 
-
-# Advanced search api
-# @api_view(['GET'])
-# def advanced_search(request):
-       
+ 
