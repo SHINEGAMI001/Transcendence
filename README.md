@@ -68,6 +68,6 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [GET] localhost:8000/api/users/search/
         ```bash
         example request url:
-        localhost:8000/api/users/search/?q=username&xp_lt=xp&order_by=wins&desc=1
+        localhost:8000/api/users/search/?q=username&xp_lt=xp&order=wins&desc=1
         ```
     - [GET] localhost:8000/api/users/profile/pub/<fixed_username>
