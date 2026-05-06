@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
+from .models import FriendRequest
 
 def users(request):
     data = {
@@ -273,5 +274,28 @@ def pub_profile(request, username):
               response = {"error message" : "empty field not allowed"}
               return Response(response, status=404)
         
-              
+# -------------------------------------------------------------------------------------------------------       
+# Friend requests endpoints
+@api_view(['GET', 'POST'])
+def send_request(request):
+        if not request.user.is_authenticated:
+                return Response({"error message" : "user not online"}, status=401)
+
+        User = get_user_model()
+        User = User.objects.all()
+        if not User.filter(username=request.data.get('username')).exists():
+               return Response({"error message" : "user doesnt exist"}, status=402)
         
+        send_to = User.get(username=request.data.get('username'))
+        
+
+        if send_to == request.user:
+               return Response({"error message" : "cant send a friend request to urself"}, status=405)
+        FriendRequest.objects.create(
+               from_user = request.user,
+               to_user = send_to,
+        )
+
+
+        return Response({"message" : "friend request sent succsesfuly"}, status=200)
+       
