@@ -70,7 +70,7 @@ function Login() {
         // the user is now authenticated
         setIsLoggedIn(true)
         // Redirect to profile page (protected route)
-        navigate('/profile')
+        navigate('/')
       }
     } catch (err) {
       const data = err.response?.data || {}
@@ -220,7 +220,7 @@ function Login() {
 
           {/* Footer */}
           <p className="text-center text-sm text-text-secondary mt-6">
-            Don't have an account?{'POSTGRES_DB '}
+            Don't have an account? {''}
             <Link
               to="/register"
               className="text-accent hover:text-accent-light transition-colors font-medium"
