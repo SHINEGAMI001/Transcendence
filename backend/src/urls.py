@@ -17,8 +17,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns  # 1. ADD THIS IMPORT
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('users.urls'))
+    path('api/', include('users.urls')),
+    path('game/', include('game.urls')),
 ]
+
+urlpatterns += staticfiles_urlpatterns()
