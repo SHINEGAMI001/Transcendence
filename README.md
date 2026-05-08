@@ -65,3 +65,10 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [GET] localhost:8000/api/auth/logout
     - [PUT] localhost:8000/api/profile/update
     - [DELETE] localhost:8000/api/profile/delete
+    - [GET] localhost:8000/api/users/search/
+        ```bash
+        example request url:
+        localhost:8000/api/users/search/?q=username&xp_lt=xp&order=wins&desc=1
+        ```
+    - [GET] localhost:8000/api/users/profile/pub/<fixed_username>
+    - [POST] local

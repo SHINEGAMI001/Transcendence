@@ -9,5 +9,8 @@ urlpatterns = [
     path('avatar/update', views.update_avatar),
     path('profile/update', views.update_profile),
     path('auth/logout', views.logout_view),
-    path('profile/delete', views.delete_view)
+    path('profile/delete', views.delete_view),
+    path('users/search/', views.advanced_search),
+    path('users/profile/pub/<username>', views.pub_profile),
+    path('users/friends/send_request', views.send_request),
 ]
