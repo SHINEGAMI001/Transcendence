@@ -211,14 +211,16 @@ def advanced_search(request):
         allowed_fields = ['id', 'xp', 'level', 'wins', 'losses']
         order = request.GET.get('order')
         desc = request.GET.get('desc')
-        if order and desc:
-               if order in allowed_fields:
-                      users = users.order_by('-' + order)
-        elif order:
-               if order in allowed_fields:
+        if order and order in allowed_fields:
+               if desc in ('true', '1', 'yes'):
+                        users = users.order_by('-' + order)
+               else:
                         users = users.order_by(order)
         else:
-                users = users.order_by('id')
+                if desc in ('true', '1', 'yes'):
+                        users = users.order_by('-' + 'id')
+                else:
+                        users = users.order_by('id')
 
         # pagination
         from django.core.paginator import Paginator
