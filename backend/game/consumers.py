@@ -81,6 +81,27 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({"type": "pong"}))
             return
 
+        # ── Live Chat ─────────────────────────────────────────────────────────
+        if msg_type == "chat":
+            text = str(msg.get("text", "")).strip()
+            if not text:
+                return
+                
+            # Limit message length to prevent spam/UI breaking
+            text = text[:100] 
+            
+            room = get_room(self.room_id)
+            if room:
+                payload = json.dumps({
+                    "type": "chat", 
+                    "sender": self.player_id, 
+                    "text": text
+                })
+                # Broadcast the message to everyone in the room instantly
+                for consumer in room._consumers.values():
+                    asyncio.create_task(consumer.send(text_data=payload))
+            return
+
         # ── Player input ──────────────────────────────────────────────────────
         if msg_type != "input":
             return

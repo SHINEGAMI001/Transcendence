@@ -111,6 +111,53 @@
     }
     .leg-left  { background: #1d4ed8; }
     .leg-right { background: #b91c1c; }
+    /* --- Live Chat Styles --- */
+    #chat-wrapper {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      pointer-events: none; /* Lets you click through the transparent parts */
+    }
+    #chat-messages {
+      height: 150px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end; /* Keeps messages at the bottom */
+      text-shadow: 1px 1px 2px black;
+      font-size: 12px;
+      margin-bottom: 5px;
+      mask-image: linear-gradient(to top, rgba(0,0,0,1) 50%, rgba(0,0,0,0));
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 50%, rgba(0,0,0,0));
+    }
+    .chat-msg {
+      margin-top: 2px;
+      word-wrap: break-word;
+    }
+    .chat-sender { font-weight: bold; color: #fbbf24; }
+    
+    #chat-input {
+      pointer-events: auto; /* Allows clicking on the input box */
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #30363d;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      outline: none;
+      transition: background 0.2s;
+    }
+    #chat-input:focus {
+      background: rgba(0, 0, 0, 0.9);
+      border-color: #58a6ff;
+    }
+    /* Hide scrollbar for cleaner game UI */
+    #chat-messages::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
@@ -125,6 +172,10 @@
 
   <div class="canvas-wrap">
     <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <div id="chat-wrapper">
+      <div id="chat-messages"></div>
+      <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off" />
+    </div>
     <div id="overlay"><span id="overlay-msg"></span></div>
   </div>
 

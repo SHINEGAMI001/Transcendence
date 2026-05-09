@@ -1,5 +1,5 @@
 /**
- * game.js — True Online Multiplayer Client
+ * game.js — True Online Multiplayer Client with Live Chat
  */
 const canvas = document.getElementById("gameCanvas");
 const ctx    = canvas.getContext("2d");
@@ -78,6 +78,18 @@ class LocalPlayer {
         }
       } else if (msg.type === "pong") {
         pingMs = Math.round(performance.now() - this.lastPingSent);
+      } else if (msg.type === "chat") {
+        const chatContainer = document.getElementById("chat-messages");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "chat-msg";
+        
+        const isMe = msg.sender === this.myPlayerId;
+        const senderColor = isMe ? "#fbbf24" : "#9ca3af"; 
+        
+        msgDiv.innerHTML = `<span class="chat-sender" style="color: ${senderColor}">[${msg.sender.substring(0,6)}]</span>: ${msg.text}`;
+        chatContainer.appendChild(msgDiv);
+        
+        chatContainer.scrollTop = chatContainer.scrollHeight;
       }
     };
     this.ws.onclose = () => {
@@ -114,18 +126,56 @@ class LocalPlayer {
 }
 
 const player = new LocalPlayer();
+
+// --- CHAT INPUT & GAME KEY BLOCKING LOGIC ---
+const chatInput = document.getElementById("chat-input");
+let isTyping = false;
+
+if (chatInput) {
+  chatInput.addEventListener("focus", () => isTyping = true);
+  chatInput.addEventListener("blur", () => {
+    isTyping = false;
+    player.input.up = player.input.down = player.input.left = player.input.right = player.input.shoot = false;
+  });
+
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const text = chatInput.value.trim();
+      if (text && player.ws && player.ws.readyState === WebSocket.OPEN) {
+        player.ws.send(JSON.stringify({ type: "chat", text: text }));
+        chatInput.value = "";
+      }
+      chatInput.blur();
+    }
+    e.stopPropagation(); 
+  });
+}
+
 const SCROLL_BLOCK = new Set(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"]);
 
 window.addEventListener("keydown", (e) => {
+  if (e.code === "Enter" && !isTyping && chatInput) {
+    e.preventDefault();
+    chatInput.focus();
+    return;
+  }
+  
+  if (isTyping) return; 
+
   if (SCROLL_BLOCK.has(e.code)) e.preventDefault();
   player.handleKeyDown(e);
 }, { passive: false });
 
-window.addEventListener("keyup", (e) => player.handleKeyUp(e));
-window.addEventListener("blur", () => {
-  player.input.up = player.input.down = player.input.left = player.input.right = false;
+window.addEventListener("keyup", (e) => {
+  if (isTyping) return; 
+  player.handleKeyUp(e);
 });
 
+window.addEventListener("blur", () => {
+  player.input.up = player.input.down = player.input.left = player.input.right = player.input.shoot = false;
+});
+
+// --- CONNECTION LOGIC ---
 let reconnectT = null;
 function connect() {
   clearTimeout(reconnectT);
