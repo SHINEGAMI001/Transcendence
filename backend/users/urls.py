@@ -13,4 +13,10 @@ urlpatterns = [
     path('users/search/', views.advanced_search),
     path('users/profile/pub/<username>', views.pub_profile),
     path('users/friends/send_request', views.send_request),
+    path('users/friends/friend_requests', views.friend_requests),
+    path('users/friends/accept_request', views.accept_request),
+    path('users/friends/reject_request', views.reject_request),
+    path('users/friends/remove_friend', views.remove_friend),
+    path('users/friends/list_friends', views.list_friends)
+
 ]
