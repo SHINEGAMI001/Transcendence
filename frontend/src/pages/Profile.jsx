@@ -33,6 +33,16 @@ import axios from 'axios'
 const API_BASE = 'http://localhost:8000/'
 const BACKEND_ORIGIN = 'http://localhost:8000'
 
+/**
+ * getCsrfToken — reads Django's csrftoken cookie
+ * Django's CSRF middleware requires this token in the X-CSRFToken header
+ * for unsafe methods (PUT, DELETE, PATCH, POST).
+ */
+function getCsrfToken() {
+  const match = document.cookie.match(/(^|;\s*)csrftoken=([^;]*)/)
+  return match ? decodeURIComponent(match[2]) : ''
+}
+
 function Profile() {
   const navigate = useNavigate()
   const { setIsLoggedIn } = useAuth()
@@ -104,8 +114,7 @@ function Profile() {
   }
 
   /**
-   * handleSaveUsername — placeholder for backend integration
-   * TODO: PUT /api/profile/update with { username: editUsername }
+   * handleSaveUsername — update username on backend
    */
   async function handleSaveUsername() {
     if (!editUsername.trim()) {
@@ -119,22 +128,22 @@ function Profile() {
     setSavingUsername(true)
     setEditMessage({ type: '', text: '' })
     try {
-      // TODO: Replace with actual backend call when ready
-      // await axios.put(`${API_BASE}api/profile/update`, { username: editUsername }, { withCredentials: true })
-      await new Promise((r) => setTimeout(r, 800)) // Simulate network delay
-      setEditMessage({ type: 'success', text: 'Username updated! (demo — backend not connected yet)' })
+      await axios.put(`${API_BASE}api/profile/update`, { username: editUsername }, {
+        withCredentials: true,
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      })
+      setEditMessage({ type: 'success', text: 'Username updated!' })
       setUser((prev) => ({ ...prev, username: editUsername }))
       setTimeout(() => setEditMessage({ type: '', text: '' }), 3000)
     } catch (err) {
-      setEditMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update username.' })
+      setEditMessage({ type: 'error', text: err.response?.data?.message || err.response?.data?.['error message'] || 'Failed to update username.' })
     } finally {
       setSavingUsername(false)
     }
   }
 
   /**
-   * handleSaveEmail — placeholder for backend integration
-   * TODO: PUT /api/profile/update with { email: editEmail }
+   * handleSaveEmail — update email on backend
    */
   async function handleSaveEmail() {
     if (!editEmail.trim()) {
@@ -148,29 +157,59 @@ function Profile() {
     setSavingEmail(true)
     setEditMessage({ type: '', text: '' })
     try {
-      // TODO: Replace with actual backend call when ready
-      // await axios.put(`${API_BASE}api/profile/update`, { email: editEmail }, { withCredentials: true })
-      await new Promise((r) => setTimeout(r, 800)) // Simulate network delay
-      setEditMessage({ type: 'success', text: 'Email updated! (demo — backend not connected yet)' })
+      await axios.put(`${API_BASE}api/profile/update`, { email: editEmail }, {
+        withCredentials: true,
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      })
+      setEditMessage({ type: 'success', text: 'Email updated!' })
       setUser((prev) => ({ ...prev, email: editEmail }))
       setTimeout(() => setEditMessage({ type: '', text: '' }), 3000)
     } catch (err) {
-      setEditMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update email.' })
+      setEditMessage({ type: 'error', text: err.response?.data?.message || err.response?.data?.['error message'] || 'Failed to update email.' })
     } finally {
       setSavingEmail(false)
     }
   }
 
   /**
-   * handleLogout — dummy logout (frontend only)
-   * Clears auth state and redirects to login.
-   * TODO: Call POST /api/auth/logout on the backend when ready.
+   * handleLogout — log the user out
+   * Calls the backend API then clears auth state and redirects to login.
    */
-  function handleLogout() {
-    setIsLoggedIn(false)
-    navigate('/login', {
-      state: { message: 'You have been logged out.' },
-    })
+  async function handleLogout() {
+    try {
+      await axios.get(`${API_BASE}api/auth/logout`, { withCredentials: true })
+    } catch (err) {
+      console.error('Logout error:', err)
+    } finally {
+      setIsLoggedIn(false)
+      navigate('/login', {
+        state: { message: 'You have been logged out.' },
+      })
+    }
+  }
+
+  /**
+   * handleDeleteProfile — Delete user profile
+   * Calls the backend DELETE api and logs the user out.
+   */
+  async function handleDeleteProfile() {
+    const isConfirmed = window.confirm('Are you sure you want to delete your profile? This action is permanent and cannot be undone.')
+    
+    if (!isConfirmed) return
+    
+    try {
+      await axios.delete(`${API_BASE}api/profile/delete`, {
+        withCredentials: true,
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      })
+      setIsLoggedIn(false)
+      navigate('/login', {
+        state: { message: 'Your profile has been permanently deleted.' },
+      })
+    } catch (err) {
+      console.error('Error deleting profile:', err)
+      alert(err.response?.data?.message || err.response?.data?.['error message'] || 'Failed to delete profile.')
+    }
   }
 
   // Fetch profile data on mount
@@ -325,7 +364,7 @@ function Profile() {
               </span>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-3 mt-4">
+              <div className="flex items-center gap-3 mt-4 flex-wrap">
                 <button
                   onClick={toggleEditMode}
                   className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
@@ -346,9 +385,15 @@ function Profile() {
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all duration-200 flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-dark-border text-text-primary hover:bg-dark-border/80 transition-all duration-200 flex items-center gap-2 cursor-pointer"
                 >
                   <span>⏻</span> Logout
+                </button>
+                <button
+                  onClick={handleDeleteProfile}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 transition-all duration-200 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>🗑</span> Delete Profile
                 </button>
               </div>
             </div>

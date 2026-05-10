@@ -57,7 +57,7 @@ python manage.py migrate #runs sql commands to create that blueprint
 ```
 ### backend available apis
 * check [views.py](backend/users/views.py) for views functions and [urls.py](backend/users/urls.py) for url routing
-- available endpoints:
+- Users endpoints:
     - [POST] localhost:8000/api/auth/register/
     - [POST] localhost:8000/api/auth/login/
     - [GET] localhost:8000/api/profile/me
@@ -65,3 +65,17 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [GET] localhost:8000/api/auth/logout
     - [PUT] localhost:8000/api/profile/update
     - [DELETE] localhost:8000/api/profile/delete
+    - [GET] localhost:8000/api/users/search/
+        ```bash
+        example request url:
+        localhost:8000/api/users/search/?q=username&xp_lt=xp&order=wins&desc=1
+        ```
+    - [GET] localhost:8000/api/users/profile/pub/<fixed_username>
+
+- Friends endpoints:
+    - [POST] localhost:8000/api/users/friends/send_request
+    - [GET] localhost:8000/api/users/friends/friend_requests
+    - [POST] localhost:8000/api/users/friends/accept_request
+    - [POST] localhost:8000/api/users/friends/reject_request
+    - [POST] localhost:8000/api/users/friends/remove_friend
+    - [GET] localhost:8000/api/users/friends/list_friends
