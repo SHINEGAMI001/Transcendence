@@ -321,7 +321,9 @@ def friend_requests(request):
                 data.append({
                       'request_id' : req.id,
                       'from_user' : req.from_user.username,
-                      'created_at' : req.created_at 
+                      'from_user_id' : req.from_user.id,
+                      'from_user_avatar' : req.from_user.avatar.url,
+                      'created_at' : req.created_at
                 })
         if data:
                return Response({"pending requests" : data}, status=200)
@@ -392,6 +394,9 @@ def list_friends(request):
                friends_data.append({
                       "id" : friend.id,
                       "username" : friend.username,
+                      "level" : friend.level,
+                      "avatar" : friend.avatar.url,
+
                })
         num_friends = request.user.friends.count()
 
