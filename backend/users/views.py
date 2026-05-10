@@ -212,9 +212,9 @@ def advanced_search(request):
         order = request.GET.get('order')
         desc = request.GET.get('desc')
         if order and order in allowed_fields:
-                if desc in ('true', '1', 'yes'):
+               if desc in ('true', '1', 'yes'):
                         users = users.order_by('-' + order)
-                else:
+               else:
                         users = users.order_by(order)
         else:
                 if desc in ('true', '1', 'yes'):

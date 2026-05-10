@@ -23,6 +23,8 @@ import Register from './pages/Register'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Profile from './pages/Profile'
+import Search from './pages/Search'
+import PublicProfile from './pages/PublicProfile'
 import Queue from './pages/Queue'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -39,6 +41,8 @@ function App() {
           the child routes or redirects to /login */}
       <Route element={<ProtectedRoute />}>
         <Route path="/profile" element={<Profile />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/user/:username" element={<PublicProfile />} />
         <Route path="/queue" element={<Queue />} />
         {/* Add more protected routes here later, e.g.:
             <Route path="/game" element={<Game />} />

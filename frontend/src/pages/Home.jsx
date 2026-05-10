@@ -154,6 +154,11 @@ function Home() {
               className="w-full bg-dark-bg/50 border border-dark-border rounded-lg py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-accent/50 transition-all placeholder:text-text-muted/50"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+                }
+              }}
             />
           </div>
         </div>
