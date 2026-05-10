@@ -294,7 +294,10 @@ def send_request(request):
                return Response({"error message" : "cant send a friend request to urself"}, status=405)
         
         if FriendRequest.objects.filter(from_user=request.user, to_user=send_to, status='pending').exists():
-                        return Response({"error message" : "already have a friend request to this user"})
+                        return Response({"error message" : "already have a friend request to this user"}, status=406)
+
+        if FriendRequest.objects.filter(from_user=send_to, to_user=request.user, status='pending').exists():
+               return Response({"error message" : "already have a friend request from this user"}, status=406)
 
         FriendRequest.objects.create(
                from_user = request.user,
