@@ -14,6 +14,11 @@ import axios from 'axios'
 const API_BASE = 'http://localhost:8000/'
 const BACKEND_ORIGIN = 'http://localhost:8000'
 
+function getCsrfToken() {
+  const match = document.cookie.match(/(^|;\s*)csrftoken=([^;]*)/)
+  return match ? decodeURIComponent(match[2]) : ''
+}
+
 function PublicProfile() {
   const { username } = useParams()  
   const navigate = useNavigate()
@@ -23,6 +28,11 @@ function PublicProfile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Friend logic state
+  const [friendStatus, setFriendStatus] = useState('none') // 'none', 'friend', 'incoming_request', 'outgoing_request'
+  const [incomingRequestId, setIncomingRequestId] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
+
   useEffect(() => {
     fetchPublicProfile()
   }, [username])
@@ -31,25 +41,116 @@ function PublicProfile() {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.get(
-        `${API_BASE}api/users/profile/pub/${username}`,
-        { withCredentials: true }
-      )
-      setUser(response.data)
-    } catch (err) {
-      if (err.response?.status === 401) {
-        if (err.response?.data?.['error message'] === 'user doesnt exist') {
-          setError('Player not found.')
+      // Fetch public profile, current friends list, pending incoming requests, and our own profile in parallel
+      const [profileRes, friendsRes, requestsRes, meRes] = await Promise.all([
+        axios.get(`${API_BASE}api/users/profile/pub/${username}`, { withCredentials: true }),
+        axios.get(`${API_BASE}api/users/friends/list_friends`, { withCredentials: true }),
+        axios.get(`${API_BASE}api/users/friends/friend_requests`, { withCredentials: true }),
+        axios.get(`${API_BASE}api/profile/me`, { withCredentials: true }).catch(() => ({ data: {} }))
+      ])
+
+      setUser(profileRes.data)
+
+      // Determine friend status
+      const me = meRes.data
+      if (me?.username === username) {
+        setFriendStatus('self')
+      } else {
+        const friends = friendsRes.data?.friends || []
+        const isFriend = friends.some(f => f.username === username)
+
+        if (isFriend) {
+          setFriendStatus('friend')
         } else {
-          setIsLoggedIn(false)
-          navigate('/login', { state: { message: 'Session expired. Please log in again.' } })
-          return
+          const pending = requestsRes.data['pending requests'] || []
+          const incoming = pending.find(r => r.from_user === username)
+          if (incoming) {
+            setFriendStatus('incoming_request')
+            setIncomingRequestId(incoming.request_id)
+          } else {
+            setFriendStatus('none')
+          }
         }
+      }
+    } catch (err) {
+      if (err.response?.status === 401 && err.response?.data?.['error message'] === 'user doesnt exist') {
+        setError('Player not found.')
+      } else if (err.response?.status === 401) {
+        setIsLoggedIn(false)
+        navigate('/login', { state: { message: 'Session expired. Please log in again.' } })
+        return
       } else {
         setError('Failed to load profile. Please try again.')
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  // --- Friend Action Methods ---
+  async function handleAddFriend() {
+    setActionLoading(true)
+    try {
+      await axios.post(`${API_BASE}api/users/friends/send_request`, { username }, { 
+        withCredentials: true,
+        headers: { 'X-CSRFToken': getCsrfToken() }
+      })
+      setFriendStatus('outgoing_request')
+    } catch (err) {
+      if (err.response?.status === 406) {
+        setFriendStatus('outgoing_request')
+      } else if (err.response?.status === 405) {
+        alert("You can't send a friend request to yourself!")
+      } else {
+        alert("Failed to send friend request.")
+      }
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleRemoveFriend() {
+    setActionLoading(true)
+    try {
+      await axios.post(`${API_BASE}api/users/friends/remove_friend`, { username }, { 
+        withCredentials: true,
+        headers: { 'X-CSRFToken': getCsrfToken() }
+      })
+      setFriendStatus('none')
+    } catch (err) {
+      alert("Failed to remove friend.")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleAcceptRequest() {
+    setActionLoading(true)
+    try {
+      await axios.post(`${API_BASE}api/users/friends/accept_request`, { request_id: incomingRequestId }, { 
+        withCredentials: true,
+        headers: { 'X-CSRFToken': getCsrfToken() }
+      })
+      setFriendStatus('friend')
+    } catch (err) {
+      alert("Failed to accept friend request.")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleRejectRequest() {
+    setActionLoading(true)
+    try {
+      await axios.post(`${API_BASE}api/users/friends/reject_request`, { request_id: incomingRequestId }, { 
+        withCredentials: true,
+        headers: { 'X-CSRFToken': getCsrfToken() }
+      })
+      setFriendStatus('none')
+    } catch (err) {
+      alert("Failed to reject friend request.")
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -128,6 +229,37 @@ function PublicProfile() {
               <span className="inline-block mt-2 px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full border border-accent/20">
                 Player #{user?.id}
               </span>
+
+              {/* Action Buttons */}
+              {friendStatus !== 'self' && (
+                <div className="mt-5 flex flex-wrap gap-3 justify-center sm:justify-start">
+                  {friendStatus === 'friend' && (
+                    <button onClick={handleRemoveFriend} disabled={actionLoading} className="px-4 py-2 text-sm font-semibold rounded-lg bg-error/10 text-error hover:bg-error/20 border border-error/30 transition-all cursor-pointer disabled:opacity-50">
+                      {actionLoading ? 'Loading...' : 'Remove Friend'}
+                    </button>
+                  )}
+                  {friendStatus === 'none' && (
+                    <button onClick={handleAddFriend} disabled={actionLoading} className="px-4 py-2 text-sm font-semibold rounded-lg bg-accent hover:bg-accent-light text-white transition-all cursor-pointer disabled:opacity-50">
+                      {actionLoading ? 'Loading...' : 'Add Friend'}
+                    </button>
+                  )}
+                  {friendStatus === 'outgoing_request' && (
+                    <button disabled className="px-4 py-2 text-sm font-semibold rounded-lg bg-dark-bg border border-dark-border text-text-muted cursor-not-allowed">
+                      Request Sent
+                    </button>
+                  )}
+                  {friendStatus === 'incoming_request' && (
+                    <>
+                      <button onClick={handleAcceptRequest} disabled={actionLoading} className="px-4 py-2 text-sm font-semibold rounded-lg bg-success/20 text-success hover:bg-success/30 border border-success/40 transition-all cursor-pointer disabled:opacity-50">
+                        Accept Request
+                      </button>
+                      <button onClick={handleRejectRequest} disabled={actionLoading} className="px-4 py-2 text-sm font-semibold rounded-lg bg-dark-bg border border-dark-border hover:bg-dark-border/80 text-text-secondary transition-all cursor-pointer disabled:opacity-50">
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

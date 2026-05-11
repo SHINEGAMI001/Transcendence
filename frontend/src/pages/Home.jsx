@@ -23,7 +23,9 @@ function Home() {
   
   // Lobby States
   const [searchQuery, setSearchQuery] = useState('')
-  const [friends, setFriends] = useState([]) // Friends list (to be fetched from backend)
+  const [friends, setFriends] = useState([]) // Fetched from backend
+  const [pendingRequests, setPendingRequests] = useState([]) // Incoming friend requests
+  const [showRequestsSidebar, setShowRequestsSidebar] = useState(false)
   const [party, setParty] = useState([]) // Friends currently in your lobby
   const [matchMode, setMatchMode] = useState('1v1')
 
@@ -33,11 +35,19 @@ function Home() {
   const currentPartySize = party.length + 1
   const isPartyValid = currentPartySize <= maxPlayers
 
-  // Fetch basic user info if logged in
+  // Fetch basic user info and friends data if logged in
   useEffect(() => {
     if (isLoggedIn) {
       axios.get(`${API_BASE}api/profile/me`, { withCredentials: true })
         .then(res => setUser(res.data))
+        .catch(() => {})
+
+      axios.get(`${API_BASE}api/users/friends/list_friends`, { withCredentials: true })
+        .then(res => setFriends(res.data.friends || []))
+        .catch(() => {})
+
+      axios.get(`${API_BASE}api/users/friends/friend_requests`, { withCredentials: true })
+        .then(res => setPendingRequests(res.data['pending requests'] || []))
         .catch(() => {})
     }
   }, [isLoggedIn])
@@ -116,7 +126,7 @@ function Home() {
           {friends.length > 0 ? (
             friends.map(friend => (
               <div key={friend.id} className="group p-3 rounded-xl bg-dark-card/30 border border-transparent hover:border-accent/30 transition-all flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <Link to={`/user/${friend.username}`} className="flex items-center gap-3 flex-1">
                   <div className="relative">
                     <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center overflow-hidden">
                       {friend.avatar ? <img src={getAvatarUrl(friend.avatar)} className="w-full h-full object-cover" /> : <span className="text-xs font-bold text-accent">{friend.username[0]}</span>}
@@ -124,13 +134,15 @@ function Home() {
                     <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-dark-surface ${friend.status === 'online' ? 'bg-success' : friend.status === 'in-game' ? 'bg-accent' : 'bg-text-muted'}`} />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">{friend.username}</p>
-                    <p className="text-[10px] text-text-muted capitalize">{friend.status}</p>
+                    <span className="text-sm font-semibold group-hover:text-accent transition-colors">
+                      {friend.username}
+                    </span>
+                    <p className="text-[10px] text-text-muted capitalize">{friend.status || 'offline'}</p>
                   </div>
-                </div>
+                </Link>
                 <button 
-                  onClick={() => handleInvite(friend)}
-                  className="opacity-0 group-hover:opacity-100 p-2 text-accent hover:bg-accent/10 rounded-lg transition-all"
+                  onClick={(e) => { e.preventDefault(); handleInvite(friend); }}
+                  className="opacity-0 group-hover:opacity-100 p-2 text-accent hover:bg-accent/10 rounded-lg transition-all z-10 relative"
                   title="Invite to Party"
                 >
                   ➕
@@ -178,6 +190,20 @@ function Home() {
             <h2 className="text-xl font-bold tracking-tight text-accent italic">TRANSCENDENCE LOBBY</h2>
           </div>
           <div className="flex items-center gap-6">
+            {/* Friend Requests Bell Notification */}
+            <button 
+               onClick={() => setShowRequestsSidebar(true)}
+               className="relative p-2 text-xl hover:scale-110 transition-transform hover:text-accent cursor-pointer"
+               title="Friend Requests"
+            >
+               🔔
+               {pendingRequests.length > 0 && (
+                 <span className="absolute top-0 right-0 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg transform translate-x-1 -translate-y-1">
+                   {pendingRequests.length}
+                 </span>
+               )}
+            </button>
+
             <Link to="/profile" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-all">
               <div className="text-right flex flex-col">
                 <span className="text-sm font-bold">{user?.username}</span>
@@ -189,6 +215,59 @@ function Home() {
             </Link>
           </div>
         </header>
+
+        {/* Incoming Friend Requests Sidebar */}
+        {showRequestsSidebar && (
+          <>
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setShowRequestsSidebar(false)} />
+            <aside className="fixed right-0 top-0 bottom-0 w-80 bg-dark-surface/95 backdrop-blur-2xl border-l border-dark-border z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+              <div className="p-6 border-b border-dark-border flex items-center justify-between">
+                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                  <span className="text-accent">🛎️</span> Friend Requests
+                </h2>
+                <button 
+                  onClick={() => setShowRequestsSidebar(false)}
+                  className="w-8 h-8 rounded-full bg-dark-bg/50 hover:bg-error/20 hover:text-error flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                {pendingRequests.length > 0 ? (
+                  pendingRequests.map(req => (
+                    <div key={req.request_id} className="p-4 bg-dark-bg/50 border border-dark-border rounded-xl shadow-lg">
+                      <div className="flex items-center gap-3 mb-3">
+                         <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center overflow-hidden shrink-0">
+                           {req.from_user_avatar ? (
+                              <img src={getAvatarUrl(req.from_user_avatar)} className="w-full h-full object-cover" />
+                           ) : (
+                              <span className="text-sm font-bold text-accent">{req.from_user[0]}</span>
+                           )}
+                         </div>
+                         <div>
+                           <p className="text-sm font-bold text-text-primary">{req.from_user}</p>
+                           <p className="text-xs text-text-muted leading-tight">wants to be your friend</p>
+                         </div>
+                      </div>
+                      <Link 
+                        to={`/user/${req.from_user}`}
+                        onClick={() => setShowRequestsSidebar(false)}
+                        className="block w-full py-2 text-center text-xs font-semibold bg-accent/10 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-lg transition-all"
+                      >
+                        View Profile to Respond
+                      </Link>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center space-y-3 text-text-muted">
+                    <p className="text-3xl">📭</p>
+                    <p className="text-sm">No pending requests.</p>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </>
+        )}
 
         {/* Lobby Content */}
         <section className="flex-1 overflow-y-auto p-12 flex flex-col items-center justify-center z-10">
