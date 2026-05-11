@@ -408,4 +408,23 @@ def list_friends(request):
         
         return Response(response, status=200)
                
-       
+
+# Check request if accepted or pending
+@api_view(['GET'])
+def check_status(request, username):
+        if not request.user.is_authenticated:
+              return Response({"error message", "user not online"}, status=401)
+
+        user_name = username
+        if user_name == request.user.username:
+               return Response({"error message" : "cant check requests for self"}, status=406)
+        User = get_user_model()
+        checked_user = User.objects.get(username=user_name)
+        reqs = FriendRequest.objects.all()
+        if reqs.filter(from_user=request.user,to_user=checked_user).exists():
+                req = reqs.get(from_user=request.user,to_user=checked_user)
+                return Response({"message" : "friend request status",
+                                 "status" : req.status}, status=200)
+        else:
+               return Response({"error message" : "no pending request"}, status=406)
+        
