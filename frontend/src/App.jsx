@@ -26,6 +26,7 @@ import Profile from './pages/Profile'
 import Search from './pages/Search'
 import PublicProfile from './pages/PublicProfile'
 import Queue from './pages/Queue'
+import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -49,6 +50,8 @@ function App() {
             <Route path="/settings" element={<Settings />} />
         */}
       </Route>
+      {/* Catch-all: show NotFound page for unknown routes */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }

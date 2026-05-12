@@ -208,7 +208,7 @@ function Search() {
               to="/"
               className="text-text-muted hover:text-accent transition-colors text-sm font-medium"
             >
-              ← Lobby
+              ← Back to Home
             </Link>
           </div>
 

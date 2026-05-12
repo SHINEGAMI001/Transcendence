@@ -280,7 +280,6 @@ function Home() {
                 <div className="w-28 h-28 rounded-full border-4 border-accent flex items-center justify-center overflow-hidden shadow-2xl shadow-accent/20 bg-dark-surface">
                    {user?.avatar ? <img src={getAvatarUrl(user.avatar)} className="w-full h-full object-cover" /> : <span className="text-4xl font-bold text-accent">{user?.username?.[0]}</span>}
                 </div>
-                <div className="absolute -top-2 -right-2 bg-accent text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/20 shadow-xl">LEADER</div>
               </div>
               <span className="font-bold text-lg">{user?.username} (You)</span>
             </div>

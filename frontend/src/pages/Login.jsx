@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 
@@ -9,9 +9,8 @@ function Login() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Access global auth state — setIsLoggedIn is called after
-  // successful login to update the app-wide auth status
-  const { setIsLoggedIn } = useAuth()
+  // Access global auth state
+  const { setIsLoggedIn, isLoggedIn, loading: authLoading } = useAuth()
 
   // Success message from registration redirect
   const successMessage = location.state?.message || ''
@@ -89,6 +88,9 @@ function Login() {
       setLoading(false)
     }
   }
+
+  if (authLoading) return null
+  if (isLoggedIn) return <Navigate to="/" replace />
 
   return (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
