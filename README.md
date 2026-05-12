@@ -80,3 +80,4 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [POST] localhost:8000/api/users/friends/remove_friend
     - [GET] localhost:8000/api/users/friends/list_friends
     - [GET] localhost:8000/api/users/friends/check_status/<fixed_username>
+    - [GET] localhost:8000/api/users/friends/friend_status/<fixed_username>

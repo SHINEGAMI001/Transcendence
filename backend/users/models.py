@@ -14,6 +14,7 @@ class User(AbstractUser):
     )
 
     friends = models.ManyToManyField('self', blank=True)
+    last_seen = models.DateTimeField(auto_now=True)
 
 
 # Friend requests relationship
