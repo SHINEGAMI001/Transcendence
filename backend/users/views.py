@@ -361,7 +361,7 @@ def reject_request(request):
         req = FriendRequest.objects.get(id=request_id)
         req.status = "rejected"
         req.save()
-        return Response({"message" : "friend request rejected"}, status=402)
+        return Response({"message" : "friend request rejected"}, status=200)
 
 
 # Remove a friend
