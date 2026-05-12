@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, Navigate } from 'react-router-dom'
 import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
 
 const API_BASE = 'http://localhost:8000/'
 
 function Register() {
   const navigate = useNavigate()
+  const { isLoggedIn, loading: authLoading } = useAuth()
 
   const [formData, setFormData] = useState({
     username: '',
@@ -104,6 +106,9 @@ function Register() {
       setLoading(false)
     }
   }
+
+  if (authLoading) return null
+  if (isLoggedIn) return <Navigate to="/" replace />
 
   return (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">

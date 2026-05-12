@@ -23,15 +23,15 @@ def register(request):
 
         # if empty data
         if not request.data:
-                return Response({"error message" : "cant accept empty parameters"})
+                return Response({"error message" : "cant accept empty parameters"}, status=400)
 
         # check keys and values
         if not request.data.get("username"):
-                return Response({"error message" : "missing username"})
+                return Response({"error message" : "missing username"}, status=400)
         elif not request.data.get("password"):
-                return Response({"error message" : "missing password"})
+                return Response({"error message" : "missing password"}, status=400)
         elif not request.data.get("email"):
-                return Response({"error message" : "missing email"})
+                return Response({"error message" : "missing email"}, status=400)
 
         # get the default User model (User datatable)
         user = get_user_model()
@@ -46,19 +46,19 @@ def register(request):
                         email=request.data['email'],
                         password=request.data['password']
                         )
-        return Response({'message' : 'account created'})
+        return Response({'message' : 'account created'}, status=200)
 
 # login api
 @api_view(['POST'])
 def login_view(request):
 
     if not request.data: # if empty data
-           return Response({"error message" : "cant accept empty parameters"})
+           return Response({"error message" : "cant accept empty parameters"}, status=400)
     
     if not request.data.get('username'):
-        return Response({"error message" : "expected 'username'"})
+        return Response({"error message" : "expected 'username'"}, status=400)
     elif not request.data.get("password"):
-        return Response({"error message" : "expected 'pass'"})
+        return Response({"error message" : "expected 'pass'"}, status=400)
     
     username = request.data['username']
     password = request.data['password']
@@ -66,9 +66,9 @@ def login_view(request):
     user = authenticate(username=username, password=password) # search by username and compare hashed password
     if user:
         login(request, user) # save user id in django session
-        return Response({"message" : "login success"})
+        return Response({"message" : "login success"}, status=200)
     else:
-        return Response({"error message" : "username or password is incorrect"})
+        return Response({"error message" : "username or password is incorrect"}, status=401)
 
 
 #profile api

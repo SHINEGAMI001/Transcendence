@@ -20,7 +20,7 @@ function getCsrfToken() {
 }
 
 function PublicProfile() {
-  const { username } = useParams()  
+  const { username } = useParams()
   const navigate = useNavigate()
   const { setIsLoggedIn } = useAuth()
 
@@ -41,12 +41,13 @@ function PublicProfile() {
     setLoading(true)
     setError('')
     try {
-      // Fetch public profile, current friends list, pending incoming requests, and our own profile in parallel
-      const [profileRes, friendsRes, requestsRes, meRes] = await Promise.all([
+      // Fetch public profile, current friends list, pending incoming requests, our own profile, and outgoing request status in parallel
+      const [profileRes, friendsRes, requestsRes, meRes, statusRes] = await Promise.all([
         axios.get(`${API_BASE}api/users/profile/pub/${username}`, { withCredentials: true }),
         axios.get(`${API_BASE}api/users/friends/list_friends`, { withCredentials: true }),
         axios.get(`${API_BASE}api/users/friends/friend_requests`, { withCredentials: true }),
-        axios.get(`${API_BASE}api/profile/me`, { withCredentials: true }).catch(() => ({ data: {} }))
+        axios.get(`${API_BASE}api/profile/me`, { withCredentials: true }).catch(() => ({ data: {} })),
+        axios.get(`${API_BASE}api/users/friends/check_status/${username}`, { withCredentials: true }).catch(() => ({ data: {} }))
       ])
 
       setUser(profileRes.data)
@@ -67,6 +68,8 @@ function PublicProfile() {
           if (incoming) {
             setFriendStatus('incoming_request')
             setIncomingRequestId(incoming.request_id)
+          } else if (statusRes.data?.status === 'pending') {
+            setFriendStatus('outgoing_request')
           } else {
             setFriendStatus('none')
           }
@@ -91,7 +94,7 @@ function PublicProfile() {
   async function handleAddFriend() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/send_request`, { username }, { 
+      await axios.post(`${API_BASE}api/users/friends/send_request`, { username }, {
         withCredentials: true,
         headers: { 'X-CSRFToken': getCsrfToken() }
       })
@@ -112,7 +115,7 @@ function PublicProfile() {
   async function handleRemoveFriend() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/remove_friend`, { username }, { 
+      await axios.post(`${API_BASE}api/users/friends/remove_friend`, { username }, {
         withCredentials: true,
         headers: { 'X-CSRFToken': getCsrfToken() }
       })
@@ -127,7 +130,7 @@ function PublicProfile() {
   async function handleAcceptRequest() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/accept_request`, { request_id: incomingRequestId }, { 
+      await axios.post(`${API_BASE}api/users/friends/accept_request`, { request_id: incomingRequestId }, {
         withCredentials: true,
         headers: { 'X-CSRFToken': getCsrfToken() }
       })
@@ -142,7 +145,7 @@ function PublicProfile() {
   async function handleRejectRequest() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/reject_request`, { request_id: incomingRequestId }, { 
+      await axios.post(`${API_BASE}api/users/friends/reject_request`, { request_id: incomingRequestId }, {
         withCredentials: true,
         headers: { 'X-CSRFToken': getCsrfToken() }
       })
@@ -203,6 +206,9 @@ function PublicProfile() {
       </div>
 
       <div className="relative max-w-2xl mx-auto space-y-6">
+        <Link to="/" className="inline-flex items-center text-text-muted hover:text-accent transition-colors text-sm font-medium mb-2">
+          ← Back to Home
+        </Link>
         {/* Header */}
         <div className="bg-dark-surface/80 backdrop-blur-xl border border-dark-border rounded-2xl p-8 shadow-2xl shadow-accent-glow/10">
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -245,7 +251,7 @@ function PublicProfile() {
                   )}
                   {friendStatus === 'outgoing_request' && (
                     <button disabled className="px-4 py-2 text-sm font-semibold rounded-lg bg-dark-bg border border-dark-border text-text-muted cursor-not-allowed">
-                      Request Sent
+                      Friend Request Pending
                     </button>
                   )}
                   {friendStatus === 'incoming_request' && (

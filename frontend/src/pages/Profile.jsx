@@ -295,6 +295,9 @@ function Profile() {
       </div>
 
       <div className="relative max-w-2xl mx-auto space-y-6">
+        <Link to="/" className="inline-flex items-center text-text-muted hover:text-accent transition-colors text-sm font-medium mb-2">
+          ← Back to Home
+        </Link>
         {/* ========================================
             HEADER SECTION — User identity
             Shows avatar initial, username, and email
