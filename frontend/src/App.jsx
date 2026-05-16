@@ -25,6 +25,7 @@ import Home from './pages/Home'
 import Profile from './pages/Profile'
 import Search from './pages/Search'
 import PublicProfile from './pages/PublicProfile'
+import Lobby from './pages/Lobby'
 import Queue from './pages/Queue'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -44,6 +45,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/search" element={<Search />} />
         <Route path="/user/:username" element={<PublicProfile />} />
+        <Route path="/lobby" element={<Lobby />} />
         <Route path="/queue" element={<Queue />} />
         {/* Add more protected routes here later, e.g.:
             <Route path="/game" element={<Game />} />

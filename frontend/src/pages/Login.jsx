@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../api'
 import { useAuth } from '../context/AuthContext'
-
-const API_BASE = 'http://localhost:8000/'
 
 function Login() {
   const navigate = useNavigate()
@@ -55,14 +53,10 @@ function Login() {
     setErrors({})
 
     try {
-      const response = await axios.post(
-        `${API_BASE}api/auth/login/`,
-        {
-          username: formData.username.trim(),
-          password: formData.password,
-        },
-        { withCredentials: true }
-      )
+      const response = await api.post('api/auth/login/', {
+        username: formData.username.trim(),
+        password: formData.password,
+      })
 
       if (response.data.message === 'login success') {
         // Update global auth state so ProtectedRoute knows

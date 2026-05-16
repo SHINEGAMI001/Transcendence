@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link, Navigate } from 'react-router-dom'
-import axios from 'axios'
+import api from '../api'
 import { useAuth } from '../context/AuthContext'
-
-const API_BASE = 'http://localhost:8000/'
 
 function Register() {
   const navigate = useNavigate()
@@ -72,7 +70,7 @@ function Register() {
     setErrors({})
 
     try {
-      const response = await axios.post(`${API_BASE}api/auth/register/`, {
+      const response = await api.post('api/auth/register/', {
         username: formData.username.trim(),
         email: formData.email.trim(),
         password: formData.password,

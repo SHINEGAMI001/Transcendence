@@ -24,9 +24,7 @@
  */
 
 import { createContext, useContext, useState, useEffect } from 'react'
-import axios from 'axios'
-
-const API_BASE = 'http://localhost:8000/'
+import api from '../api'
 
 // Create the context with default values (never used directly,
 // always accessed via AuthProvider below)
@@ -54,9 +52,7 @@ export function AuthProvider({ children }) {
       try {
         // Attempt to fetch the profile — if session cookie is valid,
         // this returns 200 with user data
-        await axios.get(`${API_BASE}api/profile/me`, {
-          withCredentials: true,
-        })
+        await api.get('api/profile/me')
         // Session is valid
         setIsLoggedIn(true)
       } catch {

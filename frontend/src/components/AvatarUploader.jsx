@@ -11,9 +11,8 @@
  */
 
 import { useState, useRef } from 'react'
-import axios from 'axios'
+import api from '../api'
 
-const API_BASE = 'http://localhost:8000/'
 const MAX_FILE_SIZE = 7 * 1024 * 1024 // 7MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
@@ -63,20 +62,7 @@ function AvatarUploader({ currentAvatar, onUploadSuccess }) {
       const formData = new FormData()
       formData.append('avatar', selectedFile)
 
-      // Read CSRF token from cookie (Django default 'csrftoken')
-      const getCookie = (name) => {
-        const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'))
-        return match ? decodeURIComponent(match[2]) : null
-      }
-      const csrfToken = getCookie('csrftoken') || getCookie('csrf') || null
-
-      await axios.put(`${API_BASE}api/avatar/update`, formData, {
-        withCredentials: true,
-        headers: {
-          'X-CSRFToken': csrfToken,
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      })
+      await api.put('api/avatar/update', formData)
 
       setMessage({ type: 'success', text: 'Avatar uploaded successfully!' })
       setPreview(null)

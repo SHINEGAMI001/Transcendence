@@ -13,10 +13,9 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import axios from 'axios'
+import api, { BACKEND_ORIGIN } from '../api'
+import { getAvatarUrl } from '../utils'
 
-const API_BASE = 'http://localhost:8000/'
-const BACKEND_ORIGIN = 'http://localhost:8000'
 const PAGE_SIZE = 10
 
 function Search() {
@@ -96,9 +95,8 @@ function Search() {
       }
       if (!apiParams.page) apiParams.page = 1
 
-      const response = await axios.get(`${API_BASE}api/users/search/`, {
+      const response = await api.get('api/users/search/', {
         params: apiParams,
-        withCredentials: true,
       })
       const data = response.data
       setResults(data['current data'] || [])
@@ -168,11 +166,7 @@ function Search() {
     setSearchParams(params)
   }
 
-  function getAvatarUrl(avatarPath) {
-    if (!avatarPath) return null
-    if (avatarPath.startsWith('http')) return avatarPath
-    return `${BACKEND_ORIGIN}${avatarPath}`
-  }
+  // Replaced local getAvatarUrl with utils
 
   // Page number buttons (max 5)
   function getPageNumbers() {

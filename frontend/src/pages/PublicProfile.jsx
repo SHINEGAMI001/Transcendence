@@ -9,15 +9,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import axios from 'axios'
-
-const API_BASE = 'http://localhost:8000/'
-const BACKEND_ORIGIN = 'http://localhost:8000'
-
-function getCsrfToken() {
-  const match = document.cookie.match(/(^|;\s*)csrftoken=([^;]*)/)
-  return match ? decodeURIComponent(match[2]) : ''
-}
+import api, { BACKEND_ORIGIN } from '../api'
+import { getAvatarUrl, formatDate } from '../utils'
 
 function PublicProfile() {
   const { username } = useParams()
@@ -29,9 +22,11 @@ function PublicProfile() {
   const [error, setError] = useState('')
 
   // Friend logic state
-  const [friendStatus, setFriendStatus] = useState('none') // 'none', 'friend', 'incoming_request', 'outgoing_request'
+  const [friendStatus, setFriendStatus] = useState('none') // 'none', 'friend', 'incoming_request', 'outgoing_request', 'self'
   const [incomingRequestId, setIncomingRequestId] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [isOnline, setIsOnline] = useState(false)
+  const [lastSeen, setLastSeen] = useState(null)
 
   useEffect(() => {
     fetchPublicProfile()
@@ -43,11 +38,11 @@ function PublicProfile() {
     try {
       // Fetch public profile, current friends list, pending incoming requests, our own profile, and outgoing request status in parallel
       const [profileRes, friendsRes, requestsRes, meRes, statusRes] = await Promise.all([
-        axios.get(`${API_BASE}api/users/profile/pub/${username}`, { withCredentials: true }),
-        axios.get(`${API_BASE}api/users/friends/list_friends`, { withCredentials: true }),
-        axios.get(`${API_BASE}api/users/friends/friend_requests`, { withCredentials: true }),
-        axios.get(`${API_BASE}api/profile/me`, { withCredentials: true }).catch(() => ({ data: {} })),
-        axios.get(`${API_BASE}api/users/friends/check_status/${username}`, { withCredentials: true }).catch(() => ({ data: {} }))
+        api.get(`api/users/profile/pub/${username}`),
+        api.get('api/users/friends/list_friends'),
+        api.get('api/users/friends/friend_requests'),
+        api.get('api/profile/me').catch(() => ({ data: {} })),
+        api.get(`api/users/friends/check_status/${username}`).catch(() => ({ data: {} }))
       ])
 
       setUser(profileRes.data)
@@ -56,12 +51,21 @@ function PublicProfile() {
       const me = meRes.data
       if (me?.username === username) {
         setFriendStatus('self')
+        setIsOnline(true) // You are always online to yourself
       } else {
         const friends = friendsRes.data?.friends || []
         const isFriend = friends.some(f => f.username === username)
 
         if (isFriend) {
           setFriendStatus('friend')
+          // Check if this friend is online using the new API
+          try {
+            const statusCheck = await api.get(`api/users/friends/friend_status/${username}`)
+            setIsOnline(statusCheck.data?.status === true)
+            setLastSeen(statusCheck.data?.last_seen)
+          } catch (e) {
+            setIsOnline(false)
+          }
         } else {
           const pending = requestsRes.data['pending requests'] || []
           const incoming = pending.find(r => r.from_user === username)
@@ -94,10 +98,7 @@ function PublicProfile() {
   async function handleAddFriend() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/send_request`, { username }, {
-        withCredentials: true,
-        headers: { 'X-CSRFToken': getCsrfToken() }
-      })
+      await api.post('api/users/friends/send_request', { username })
       setFriendStatus('outgoing_request')
     } catch (err) {
       if (err.response?.status === 406) {
@@ -115,10 +116,7 @@ function PublicProfile() {
   async function handleRemoveFriend() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/remove_friend`, { username }, {
-        withCredentials: true,
-        headers: { 'X-CSRFToken': getCsrfToken() }
-      })
+      await api.post('api/users/friends/remove_friend', { username })
       setFriendStatus('none')
     } catch (err) {
       alert("Failed to remove friend.")
@@ -130,10 +128,7 @@ function PublicProfile() {
   async function handleAcceptRequest() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/accept_request`, { request_id: incomingRequestId }, {
-        withCredentials: true,
-        headers: { 'X-CSRFToken': getCsrfToken() }
-      })
+      await api.post('api/users/friends/accept_request', { request_id: incomingRequestId })
       setFriendStatus('friend')
     } catch (err) {
       alert("Failed to accept friend request.")
@@ -145,10 +140,7 @@ function PublicProfile() {
   async function handleRejectRequest() {
     setActionLoading(true)
     try {
-      await axios.post(`${API_BASE}api/users/friends/reject_request`, { request_id: incomingRequestId }, {
-        withCredentials: true,
-        headers: { 'X-CSRFToken': getCsrfToken() }
-      })
+      await api.post('api/users/friends/reject_request', { request_id: incomingRequestId })
       setFriendStatus('none')
     } catch (err) {
       alert("Failed to reject friend request.")
@@ -157,11 +149,7 @@ function PublicProfile() {
     }
   }
 
-  function getAvatarUrl(avatarPath) {
-    if (!avatarPath) return null
-    if (avatarPath.startsWith('http')) return avatarPath
-    return `${BACKEND_ORIGIN}${avatarPath}`
-  }
+  // Replaced local getAvatarUrl with utils
 
   if (loading) {
     return (
@@ -212,22 +200,35 @@ function PublicProfile() {
         {/* Header */}
         <div className="bg-dark-surface/80 backdrop-blur-xl border border-dark-border rounded-2xl p-8 shadow-2xl shadow-accent-glow/10">
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-24 h-24 rounded-full border-2 border-accent/50 overflow-hidden flex items-center justify-center shrink-0 shadow-lg shadow-accent/20 bg-accent/10">
-              {getAvatarUrl(user?.avatar) ? (
-                <img
-                  src={getAvatarUrl(user.avatar)}
-                  alt={`${user.username}'s avatar`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none'
-                    e.target.parentElement.innerHTML = `<span class="text-3xl font-bold text-accent">${user?.username?.charAt(0).toUpperCase() || '?'}</span>`
-                  }}
-                />
-              ) : (
-                <span className="text-3xl font-bold text-accent">
-                  {user?.username?.charAt(0).toUpperCase() || '?'}
-                </span>
-              )}
+            <div className="relative shrink-0">
+              <div className="w-24 h-24 rounded-full border-2 border-accent/50 overflow-hidden flex items-center justify-center shadow-lg shadow-accent/20 bg-accent/10">
+                {getAvatarUrl(user?.avatar) ? (
+                  <img
+                    src={getAvatarUrl(user.avatar)}
+                    alt={`${user.username}'s avatar`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.parentElement.innerHTML = `<span class="text-3xl font-bold text-accent">${user?.username?.charAt(0).toUpperCase() || '?'}</span>`
+                    }}
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-accent">
+                    {user?.username?.charAt(0).toUpperCase() || '?'}
+                  </span>
+                )}
+              </div>
+              {/* Online/Offline status dot (matching private profile style) */}
+              <span
+                className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-dark-surface ${
+                  isOnline ? 'bg-green-500' : 'bg-gray-500'
+                }`}
+                title={isOnline ? 'Online' : (lastSeen ? `Last seen: ${formatDate(lastSeen)}` : 'Offline')}
+              >
+                {isOnline && (
+                  <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+                )}
+              </span>
             </div>
             <div className="text-center sm:text-left">
               <h1 className="text-2xl font-bold text-text-primary">{user?.username}</h1>
@@ -235,6 +236,11 @@ function PublicProfile() {
               <span className="inline-block mt-2 px-3 py-1 bg-accent/10 text-accent text-xs font-medium rounded-full border border-accent/20">
                 Player #{user?.id}
               </span>
+              {!isOnline && lastSeen && (
+                <p className="text-[10px] text-text-muted mt-2 italic">
+                  Last seen: {formatDate(lastSeen)}
+                </p>
+              )}
 
               {/* Action Buttons */}
               {friendStatus !== 'self' && (
