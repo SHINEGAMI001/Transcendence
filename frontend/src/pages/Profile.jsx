@@ -28,20 +28,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import AvatarUploader from '../components/AvatarUploader'
-import axios from 'axios'
-
-const API_BASE = 'http://localhost:8000/'
-const BACKEND_ORIGIN = 'http://localhost:8000'
-
-/**
- * getCsrfToken — reads Django's csrftoken cookie
- * Django's CSRF middleware requires this token in the X-CSRFToken header
- * for unsafe methods (PUT, DELETE, PATCH, POST).
- */
-function getCsrfToken() {
-  const match = document.cookie.match(/(^|;\s*)csrftoken=([^;]*)/)
-  return match ? decodeURIComponent(match[2]) : ''
-}
+import api, { BACKEND_ORIGIN } from '../api'
+import { getAvatarUrl, formatDate } from '../utils'
 
 function Profile() {
   const navigate = useNavigate()
@@ -76,9 +64,7 @@ function Profile() {
     setError('')
 
     try {
-      const response = await axios.get(`${API_BASE}api/profile/me`, {
-        withCredentials: true,
-      })
+      const response = await api.get('api/profile/me')
       // Backend returns the user object directly in response.data
       setUser(response.data)
     } catch (err) {
@@ -128,10 +114,7 @@ function Profile() {
     setSavingUsername(true)
     setEditMessage({ type: '', text: '' })
     try {
-      await axios.put(`${API_BASE}api/profile/update`, { username: editUsername }, {
-        withCredentials: true,
-        headers: { 'X-CSRFToken': getCsrfToken() },
-      })
+      await api.put('api/profile/update', { username: editUsername })
       setEditMessage({ type: 'success', text: 'Username updated!' })
       setUser((prev) => ({ ...prev, username: editUsername }))
       setTimeout(() => setEditMessage({ type: '', text: '' }), 3000)
@@ -157,10 +140,7 @@ function Profile() {
     setSavingEmail(true)
     setEditMessage({ type: '', text: '' })
     try {
-      await axios.put(`${API_BASE}api/profile/update`, { email: editEmail }, {
-        withCredentials: true,
-        headers: { 'X-CSRFToken': getCsrfToken() },
-      })
+      await api.put('api/profile/update', { email: editEmail })
       setEditMessage({ type: 'success', text: 'Email updated!' })
       setUser((prev) => ({ ...prev, email: editEmail }))
       setTimeout(() => setEditMessage({ type: '', text: '' }), 3000)
@@ -177,7 +157,7 @@ function Profile() {
    */
   async function handleLogout() {
     try {
-      await axios.get(`${API_BASE}api/auth/logout`, { withCredentials: true })
+      await api.get('api/auth/logout')
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
@@ -198,10 +178,7 @@ function Profile() {
     if (!isConfirmed) return
     
     try {
-      await axios.delete(`${API_BASE}api/profile/delete`, {
-        withCredentials: true,
-        headers: { 'X-CSRFToken': getCsrfToken() },
-      })
+      await api.delete('api/profile/delete')
       setIsLoggedIn(false)
       navigate('/login', {
         state: { message: 'Your profile has been permanently deleted.' },
@@ -217,32 +194,7 @@ function Profile() {
     fetchProfile()
   }, [])
 
-  /**
-   * getAvatarUrl — builds the full avatar URL
-   * Backend returns relative paths like "/media/avatars/file.png"
-   * so we prepend the backend origin to make them loadable.
-   */
-  function getAvatarUrl() {
-    if (!user?.avatar) return null
-    // If already absolute, use as-is; otherwise prepend backend origin
-    if (user.avatar.startsWith('http')) return `${user.avatar}?t=${avatarCacheBuster}`
-    return `${BACKEND_ORIGIN}${user.avatar}?t=${avatarCacheBuster}`
-  }
-
-  /**
-   * formatDate — converts ISO date string to a readable format
-   * Example: "2024-01-15T10:30:00Z" → "Jan 15, 2024, 10:30 AM"
-   */
-  function formatDate(dateString) {
-    if (!dateString) return 'Never'
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  // Replaced local getAvatarUrl and formatDate with utils
 
   // The user viewing their own profile is always online (they're authenticated)
   const isOnline = true
@@ -295,6 +247,9 @@ function Profile() {
       </div>
 
       <div className="relative max-w-2xl mx-auto space-y-6">
+        <Link to="/" className="inline-flex items-center text-text-muted hover:text-accent transition-colors text-sm font-medium mb-2">
+          ← Back to Home
+        </Link>
         {/* ========================================
             HEADER SECTION — User identity
             Shows avatar initial, username, and email
@@ -303,10 +258,10 @@ function Profile() {
           <div className="flex flex-col sm:flex-row items-start gap-6">
             {/* Avatar with online status indicator */}
             <div className="relative shrink-0">
-              {getAvatarUrl() ? (
+              {getAvatarUrl(user?.avatar, avatarCacheBuster) ? (
                 <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-accent/50 flex items-center justify-center shadow-lg shadow-accent/20">
                   <img
-                    src={getAvatarUrl()}
+                    src={getAvatarUrl(user?.avatar, avatarCacheBuster)}
                     alt={`${user.username}'s avatar`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -430,7 +385,7 @@ function Profile() {
                 Profile Picture
               </label>
               <AvatarUploader
-                currentAvatar={getAvatarUrl()}
+                currentAvatar={getAvatarUrl(user?.avatar, avatarCacheBuster)}
                 onUploadSuccess={handleAvatarUploadSuccess}
               />
             </div>

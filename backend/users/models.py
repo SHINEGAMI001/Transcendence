@@ -14,6 +14,7 @@ class User(AbstractUser):
     )
 
     friends = models.ManyToManyField('self', blank=True)
+    last_seen = models.DateTimeField(auto_now=True)
 
 
 # Friend requests relationship
@@ -32,3 +33,30 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.from_user} -> {self.to_user}"
+
+
+# Conversation beetween friends
+class Conversation(models.Model):
+    participants = models.ManyToManyField(User)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"conversation id: {self.id}"
+        
+# message sent information
+class Message(models.Model):
+    
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f" sender : {self.sender} -> conversation id : {self.conversation.id}"
+
+    

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
-
-const API_BASE = 'http://localhost:8000/'
+import { useNavigate, Link, Navigate } from 'react-router-dom'
+import api from '../api'
+import { useAuth } from '../context/AuthContext'
 
 function Register() {
   const navigate = useNavigate()
+  const { isLoggedIn, loading: authLoading } = useAuth()
 
   const [formData, setFormData] = useState({
     username: '',
@@ -70,7 +70,7 @@ function Register() {
     setErrors({})
 
     try {
-      const response = await axios.post(`${API_BASE}api/auth/register/`, {
+      const response = await api.post('api/auth/register/', {
         username: formData.username.trim(),
         email: formData.email.trim(),
         password: formData.password,
@@ -104,6 +104,9 @@ function Register() {
       setLoading(false)
     }
   }
+
+  if (authLoading) return null
+  if (isLoggedIn) return <Navigate to="/" replace />
 
   return (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">

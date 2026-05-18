@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
 from .models import FriendRequest
+from datetime import timedelta
+from django.utils import timezone
 
 def users(request):
     data = {
@@ -23,15 +25,15 @@ def register(request):
 
         # if empty data
         if not request.data:
-                return Response({"error message" : "cant accept empty parameters"})
+                return Response({"error message" : "cant accept empty parameters"}, status=400)
 
         # check keys and values
         if not request.data.get("username"):
-                return Response({"error message" : "missing username"})
+                return Response({"error message" : "missing username"}, status=400)
         elif not request.data.get("password"):
-                return Response({"error message" : "missing password"})
+                return Response({"error message" : "missing password"}, status=400)
         elif not request.data.get("email"):
-                return Response({"error message" : "missing email"})
+                return Response({"error message" : "missing email"}, status=400)
 
         # get the default User model (User datatable)
         user = get_user_model()
@@ -46,19 +48,19 @@ def register(request):
                         email=request.data['email'],
                         password=request.data['password']
                         )
-        return Response({'message' : 'account created'})
+        return Response({'message' : 'account created'}, status=200)
 
 # login api
 @api_view(['POST'])
 def login_view(request):
 
     if not request.data: # if empty data
-           return Response({"error message" : "cant accept empty parameters"})
+           return Response({"error message" : "cant accept empty parameters"}, status=400)
     
     if not request.data.get('username'):
-        return Response({"error message" : "expected 'username'"})
+        return Response({"error message" : "expected 'username'"}, status=400)
     elif not request.data.get("password"):
-        return Response({"error message" : "expected 'pass'"})
+        return Response({"error message" : "expected 'pass'"}, status=400)
     
     username = request.data['username']
     password = request.data['password']
@@ -66,9 +68,12 @@ def login_view(request):
     user = authenticate(username=username, password=password) # search by username and compare hashed password
     if user:
         login(request, user) # save user id in django session
-        return Response({"message" : "login success"})
+        User = get_user_model()
+        user.last_seen = timezone.now()
+        user.save()
+        return Response({"message" : "login success"}, status=200)
     else:
-        return Response({"error message" : "username or password is incorrect"})
+        return Response({"error message" : "username or password is incorrect"}, status=401)
 
 
 #profile api
@@ -77,7 +82,8 @@ def profile(request):
 
     if not request.user.is_authenticated: # check if user logged in
         return Response({"error_message" : "user not logged in"}, status=401)
-    
+    request.user.last_seen = timezone.now()
+    request.user.save()
     response = {
           "id" : request.user.id,
           "username" : request.user.username,
@@ -89,6 +95,7 @@ def profile(request):
           "wins" : request.user.wins,
           "losses" : request.user.losses,
           "avatar" : request.user.avatar.url,
+          "last_seen" : request.user.last_seen
     }
 
     return Response(response)
@@ -115,6 +122,8 @@ def update_avatar(request):
             request.user.avatar.delete() # delete old avatar
       request.user.avatar = avatarr # update and save avatar into user profile
       request.user.save()
+      request.user.last_seen = timezone.now()
+      request.user.save()
 
       return Response({"message" : "avatar updated succesfuly"}, status=200)
 
@@ -123,9 +132,9 @@ def update_avatar(request):
 @api_view(['GET'])
 def logout_view(request):
         if request.user.is_authenticated:
+                request.user.last_seen = timezone.now()
                 logout(request)
                 return Response({"message": "user logged out successfully"}, status=200)
-
         return Response({"error message": "user not logged in"}, status=401)
 
 # update profile api
@@ -141,7 +150,7 @@ def update_profile(request):
                 return Response({"error message": "bad request: expected <username> or <email>"}, status=400)
         
         User = get_user_model()
-        
+        request.user.last_seen = timezone.now()
         if username:
                 # Allow if username is same as current user
                 if username != request.user.username and User.objects.filter(username=username).exists():
@@ -172,6 +181,10 @@ def delete_view(request):
 # Advanced search api
 @api_view(['GET'])
 def advanced_search(request):
+
+        if not request.user.is_authenticated:
+               return Response({"error message" : "user not online"}, status=401)
+
         User = get_user_model()
         users = User.objects.all()
 
@@ -231,6 +244,7 @@ def advanced_search(request):
         page = request.GET.get('page', 1)
         data = p.get_page(page)
 
+        request.user.last_seen = timezone.now()
         result = []
         for user in data:
                d = {"username" : user.username,
@@ -268,6 +282,7 @@ def pub_profile(request, username):
                                "losses" : user.losses,
                                "avatar" : user.avatar.url,
                         }
+                        request.user.last_seen = timezone.now()
                         return Response(response, status=201)
                 else:
                      response = {"error message" : "user doesnt exist"}
@@ -304,6 +319,9 @@ def send_request(request):
                to_user = send_to,
         )
 
+        request.user.last_seen = timezone.now()
+        request.user.save()
+
 
         return Response({"message" : "friend request sent succsesfuly"}, status=200)
 
@@ -312,9 +330,11 @@ def send_request(request):
 def friend_requests(request):
         if not request.user.is_authenticated:
               return Response({"error message" : "user not online"}, status=401)
+        
+        request.user.last_seen = timezone.now()
+        request.user.save()
 
         requests = FriendRequest.objects.filter(to_user=request.user, status='pending')
-
 
         data = []
         for req in requests:
@@ -341,13 +361,16 @@ def accept_request(request):
 
         req = FriendRequest.objects.get(id=request_id)
         if request.user == req.to_user:
-               req.status = "accepted"
-               req.save()
-               request.user.friends.add(req.from_user)
-               req.from_user.friends.add(request.user)
-               return Response({"message" : "user added to friends"}, status=200)
+                req.status = "accepted"
+                req.save()
+                request.user.friends.add(req.from_user)
+                req.from_user.friends.add(request.user)
+
+                request.user.last_seen = timezone.now()
+                request.user.save()
+                return Response({"message" : "user added to friends"}, status=200)
         else:
-               return Response({"message" : "cant accept friend request"}, status=402)
+                return Response({"message" : "cant accept friend request"}, status=402)
 
 
 # Reject a friend request
@@ -361,7 +384,11 @@ def reject_request(request):
         req = FriendRequest.objects.get(id=request_id)
         req.status = "rejected"
         req.save()
-        return Response({"message" : "friend request rejected"}, status=402)
+
+        request.user.last_seen = timezone.now()
+        request.user.save()
+
+        return Response({"message" : "friend request rejected"}, status=200)
 
 
 # Remove a friend
@@ -379,6 +406,9 @@ def remove_friend(request):
         userr = User.objects.get(username=username)
         request.user.friends.remove(userr)
         userr.friends.remove(request.user)
+
+        request.user.last_seen = timezone.now()
+        request.user.save()
         return Response({"message" : "friend removed"}, status=200)
 
 
@@ -405,7 +435,41 @@ def list_friends(request):
                "number of friends" : num_friends,
                "friends" : friends_data,
         }
+
+        request.user.last_seen = timezone.now()
+        request.user.save()
         
         return Response(response, status=200)
                
-       
+
+# Check request if accepted or pending
+@api_view(['GET'])
+def check_status(request, username):
+        if not request.user.is_authenticated:
+              return Response({"error message", "user not online"}, status=401)
+
+        user_name = username
+        if user_name == request.user.username:
+               return Response({"error message" : "cant check requests for self"}, status=406)
+        User = get_user_model()
+        checked_user = User.objects.get(username=user_name)
+        reqs = FriendRequest.objects.all()
+        if reqs.filter(from_user=request.user,to_user=checked_user).exists():
+                req = reqs.get(from_user=request.user,to_user=checked_user)
+                return Response({"message" : "friend request status",
+                                 "status" : req.status}, status=200)
+        else:
+               return Response({"error message" : "no pending request"}, status=406)
+
+# Check friends online status
+@api_view(['GET'])
+def friend_status(request, username):
+       if not request.user.is_authenticated:
+              return Response({"error message" : "user not online"}, status=401)
+       friends = request.user.friends.all()
+       friend = friends.get(username=username)
+       last_seen = friend.last_seen
+       is_online = (timezone.now() - last_seen) < timedelta(minutes=1)
+
+       return Response({"status" : is_online,
+                        "last_seen" : last_seen}, status=200)

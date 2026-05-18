@@ -1,17 +1,14 @@
 import { useState } from 'react'
-import { useNavigate, Link, useLocation } from 'react-router-dom'
-import axios from 'axios'
+import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom'
+import api from '../api'
 import { useAuth } from '../context/AuthContext'
-
-const API_BASE = 'http://localhost:8000/'
 
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Access global auth state — setIsLoggedIn is called after
-  // successful login to update the app-wide auth status
-  const { setIsLoggedIn } = useAuth()
+  // Access global auth state
+  const { setIsLoggedIn, isLoggedIn, loading: authLoading } = useAuth()
 
   // Success message from registration redirect
   const successMessage = location.state?.message || ''
@@ -56,14 +53,10 @@ function Login() {
     setErrors({})
 
     try {
-      const response = await axios.post(
-        `${API_BASE}api/auth/login/`,
-        {
-          username: formData.username.trim(),
-          password: formData.password,
-        },
-        { withCredentials: true }
-      )
+      const response = await api.post('api/auth/login/', {
+        username: formData.username.trim(),
+        password: formData.password,
+      })
 
       if (response.data.message === 'login success') {
         // Update global auth state so ProtectedRoute knows
@@ -89,6 +82,9 @@ function Login() {
       setLoading(false)
     }
   }
+
+  if (authLoading) return null
+  if (isLoggedIn) return <Navigate to="/" replace />
 
   return (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
