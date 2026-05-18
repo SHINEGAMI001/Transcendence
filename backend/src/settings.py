@@ -43,10 +43,12 @@ INSTALLED_APPS = [
     'users',
     'rest_framework',
     'corsheaders',
-    'chat'
+    'chat',
+
 ]
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -58,11 +60,11 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173", # allow frontend react connection
+    os.getenv("FRONTEND_HOST"), # allow frontend react connection
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
+    os.getenv("FRONTEND_HOST"),
 ]
 
 #allow creds from frontend (required for cookies)
@@ -72,7 +74,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 SESSION_COOKIE_HTTPONLY = True
 
 CSRF_ALLOWED_ORIGINS = [
-    "http://localhost:5173", #allow csrf tokens from this domain
+    os.getenv("FRONTEND_HOST"), #allow csrf tokens from this domain
 ]
 
 
@@ -158,8 +160,10 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# For whitenoise to find static files 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenose.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

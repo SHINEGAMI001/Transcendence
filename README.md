@@ -81,3 +81,9 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [GET] localhost:8000/api/users/friends/list_friends
     - [GET] localhost:8000/api/users/friends/check_status/<fixed_username>
     - [GET] localhost:8000/api/users/friends/friend_status/<fixed_username>
+
+- Chat endpoints:
+    - [GET] localhost:8000/api/chat/conversation_id<fixed_username>
+
+    ### Backend websocket connection
+    - localhost:8000/ws/chat/<int:conversation_id>
