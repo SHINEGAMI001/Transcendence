@@ -3,3 +3,7 @@ djangorestframework
 psycopg2-binary
 django-cors-headers
 Pillow #image handling
+channels #websockets
+uvicorn[standard] #uvicorn server for websockets
+channels-redis #for fastdata/cache functionalitis
+whitenoise #for serving static files on backend
