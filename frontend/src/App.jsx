@@ -7,9 +7,10 @@
  * which checks auth state before rendering.
  *
  * ROUTE STRUCTURE:
- * /          → Home page (public — landing page)
+ * /          → Welcome page (public — redirects to /lobby if logged in)
  * /register  → Register page (public — create account)
  * /login     → Login page (public — sign in)
+ * /lobby     → Lobby page (protected — main hub)
  * /profile   → Profile page (protected — requires auth)
  *
  * HOW PROTECTED ROUTES WORK:
@@ -26,7 +27,6 @@ import Profile from './pages/Profile'
 import Search from './pages/Search'
 import PublicProfile from './pages/PublicProfile'
 import Lobby from './pages/Lobby'
-import Queue from './pages/Queue'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -46,10 +46,9 @@ function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/user/:username" element={<PublicProfile />} />
         <Route path="/lobby" element={<Lobby />} />
-        <Route path="/queue" element={<Queue />} />
         {/* Add more protected routes here later, e.g.:
-            <Route path="/game" element={<Game />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/room/public" element={<PublicRoom />} />
+            <Route path="/room/private" element={<PrivateRoom />} />
         */}
       </Route>
       {/* Catch-all: show NotFound page for unknown routes */}
