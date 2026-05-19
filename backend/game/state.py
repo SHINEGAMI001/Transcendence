@@ -23,20 +23,21 @@ ARENA_WIDTH  = 800
 ARENA_HEIGHT = 500
 GOAL_HEIGHT  = 150   # vertical span of each goal
 
-PLAYER_RADIUS  = 20
+PLAYER_RADIUS  = 18
 BALL_RADIUS    = 12
 PLAYER_SPEED   = 200.0   # px / second
-PUSH_STRENGTH  = 0.0     # no bounce on touch (carry ball)
-SHOOT_STRENGTH = 550.0   # px/s impulse on kick (space/enter key)
+PUSH_STRENGTH  = 100.0     # no bounce on touch (carry ball)
+SHOOT_STRENGTH = 575.0   # px/s impulse on kick (space/enter key)
 
 # --- Friction is specified as a per-SECOND multiplier, not per-tick.
 # The engine converts it to a per-tick value using dt.
 # 0.4 means the ball retains 40% of its speed after 1 full second.
-BALL_FRICTION_PER_SEC = 0.4   # fraction of speed kept per second (0..1)
+BALL_FRICTION_PER_SEC = 0.6   # fraction of speed kept per second (0..1)
 
 MAX_BALL_SPEED = 800.0   # px/s hard cap
 MAX_SCORE      = 5       # first to N goals wins
 
+# Pre-computed goal boundaries
 # Pre-computed goal boundaries
 _GOAL_TOP    = (ARENA_HEIGHT - GOAL_HEIGHT) / 2.0
 _GOAL_BOTTOM = _GOAL_TOP + GOAL_HEIGHT
@@ -110,7 +111,7 @@ class ScoreState:
         return {"left": self.left, "right": self.right}
 
 
-# ─── Tick Statistics (debug tools) ────────────────────────────────────────────
+# # ─── Tick Statistics (debug tools) ────────────────────────────────────────────
 
 @dataclass
 class TickStats:

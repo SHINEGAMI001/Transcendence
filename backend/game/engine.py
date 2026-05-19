@@ -49,7 +49,7 @@ def constrain_to_arena(entity, is_ball=False) -> None:
         elif entity.x + r > ARENA_WIDTH:
             if not (_GOAL_TOP < entity.y < _GOAL_BOTTOM):
                 entity.x = ARENA_WIDTH - r
-                entity.vx = -abs(entity.vx)
+                entity.vx = -abs(entity.vx) 
     else:
         # Players strictly stay in the box
         entity.x = _clamp(entity.x, r, ARENA_WIDTH - r)
