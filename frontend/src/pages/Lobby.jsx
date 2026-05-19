@@ -230,7 +230,7 @@ function Lobby() {
                 <span className="text-4xl drop-shadow-lg">🔒</span>
                 <div>
                   <h3 className="text-xl font-black text-white tracking-wider">PRIVATE ROOM</h3>
-                  <p className="text-violet-200/60 text-[10px] mt-0.5 font-medium">Create or join with code</p>
+                  <p className="text-violet-200/60 text-[10px] mt-0.5 font-medium">Create match with friends</p>
                 </div>
               </div>
             </button>

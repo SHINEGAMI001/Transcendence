@@ -20,10 +20,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         text = json.loads(text_data)
 
         message = text['text']
+        sender = self.scope['user'].username if self.scope['user'].is_authenticated else "Anonymous"
+        
         await self.channel_layer.group_send(
             self.room,{
                 "type" : "message",
-                "text" : message
+                "text" : message,
+                "sender": sender
             }
         )
 
@@ -37,7 +40,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Message event handler
     async def message(self, event):
         text = event['text']
+        sender = event['sender']
 
         await self.send(text_data=json.dumps({
-            "message" : text
+            "message" : text,
+            "sender": sender
         }))

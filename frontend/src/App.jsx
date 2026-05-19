@@ -28,6 +28,8 @@ import Search from './pages/Search'
 import PublicProfile from './pages/PublicProfile'
 import Lobby from './pages/Lobby'
 import Chat from './pages/Chat'
+import PublicRoom from './pages/PublicRoom'
+import PrivateRoom from './pages/PrivateRoom'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -48,10 +50,8 @@ function App() {
         <Route path="/user/:username" element={<PublicProfile />} />
         <Route path="/lobby" element={<Lobby />} />
         <Route path="/chat/:username" element={<Chat />} />
-        {/* Add more protected routes here later, e.g.:
-            <Route path="/room/public" element={<PublicRoom />} />
-            <Route path="/room/private" element={<PrivateRoom />} />
-        */}
+        <Route path="/room/public" element={<PublicRoom />} />
+        <Route path="/room/private" element={<PrivateRoom />} />
       </Route>
       {/* Catch-all: show NotFound page for unknown routes */}
       <Route path="*" element={<NotFound />} />
