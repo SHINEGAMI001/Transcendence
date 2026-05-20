@@ -111,6 +111,14 @@ function Profile() {
       setEditMessage({ type: 'error', text: 'Username is the same as current.' })
       return
     }
+    if (editUsername.trim().length < 3) {
+      setEditMessage({ type: 'error', text: 'Username must be at least 3 characters.' })
+      return
+    }
+    if (editUsername.trim().length > 20) {
+      setEditMessage({ type: 'error', text: 'Username must be 20 characters or less.' })
+      return
+    }
     setSavingUsername(true)
     setEditMessage({ type: '', text: '' })
     try {
@@ -135,6 +143,11 @@ function Profile() {
     }
     if (editEmail === user?.email) {
       setEditMessage({ type: 'error', text: 'Email is the same as current.' })
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(editEmail.trim())) {
+      setEditMessage({ type: 'error', text: 'Please enter a valid email address.' })
       return
     }
     setSavingEmail(true)

@@ -50,11 +50,13 @@ def list_conversations(request):
     
     for conv in conversations:
         other_user = conv.participants.exclude(id=user.id).first()
-        data.append({
-            "conversation id" : conv.id,
-            "sender" : user.username,
-            "receiver" : other_user.username
-        })
+        if other_user:
+            data.append({
+                "conversation id" : conv.id,
+                "sender" : user.username,
+                "receiver" : other_user.username,
+                "receiver_avatar" : other_user.avatar.url if other_user.avatar else None
+            })
 
     return Response(data, status=200)
 
