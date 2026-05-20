@@ -89,3 +89,4 @@ python manage.py migrate #runs sql commands to create that blueprint
 
     ### Backend websocket connection
     - localhost:8000/ws/chat/<int:conversation_id>
+    - localhost:8000/ws/notifications/

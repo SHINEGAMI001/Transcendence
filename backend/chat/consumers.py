@@ -1,8 +1,10 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from users.models import Conversation, Message
+from django.utils import timezone
 import json
 
+# Saving sctive users in chat
 ACTIVE_CHAT_CHANNELS = {
     #user_id : conversation_id
 }
@@ -36,6 +38,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Save to database
         await self.save_message(message=message)
+        # Get receiver
+        receiver = await self.get_receiver()
 
         # Broadcast event
         await self.channel_layer.group_send(
@@ -45,6 +49,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "sender" : self.user.username
             }
         )
+
+        # Send notification
+        # Send when user not active in chat
+        if ACTIVE_CHAT_CHANNELS.get(receiver.id) != self.room:
+            await self.channel_layer.group_send(
+                f"notification_{receiver.id}",{
+                    "type" : "message_notify",
+                    "info" : "new message",
+                    "sender" : self.user.username,
+                    "receiver" : receiver.username,
+                    "created_at" : str(timezone.now())
+                    
+                    
+                }
+                
+            )
 
     async def disconnect(self, closecode):
         
@@ -102,6 +122,63 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender=user,
             message=message,
         )
+    
+    # Get the message receiver from the conversation
+    @database_sync_to_async
+    def get_receiver(self):
+        conv_id = self.scope['url_route']['kwargs']['conversation_id']
+        conversation = Conversation.objects.filter(id=conv_id)
+        participants = conversation.first().participants.exclude(id=self.user.id)
+        
+        return participants.first()
 
+
+# Notifications consumer
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope['user']
+        self.room_id = f"notification_{self.user.id}"
+
+        # Check if user authenticated
+        if not self.user.is_authenticated:
+            return await self.close()
+        
+        # Add to private room
+        await self.channel_layer.group_add(
+            self.room_id,
+            self.channel_name
+        )
+
+        await self.accept()
+        
+
+    
+    async def receive(self, text_data):
+        pass
+
+
+    # Disconnect user
+    async def disconnect(self, closecode):
+
+        await self.channel_layer.group_discard(
+            self.room_id,
+            self.channel_name
+        )
+    
+    # Notification handler
+    async def message_notify(self, event):
+        
+
+        await self.send(text_data=json.dumps({
+            "info" : event['info'],
+            "sender" : event['sender'],
+            "receiver" : event['receiver'],
+            "created_at" : event['created_at']
+
+        }))
+
+
+
+        
 
 
