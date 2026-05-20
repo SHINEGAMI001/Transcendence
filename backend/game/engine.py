@@ -87,23 +87,18 @@ def constrain_to_arena(entity, is_ball=False) -> None:
                     if dot > 0: 
                         entity.vx -= 2 * dot * nx
                         entity.vy -= 2 * dot * ny
-
 def update_player(player: PlayerState, dt: float) -> None:
-    dx = dy = 0.0
-    if player.right: dx += 1.0
-    if player.left:  dx -= 1.0
-    if player.down:  dy += 1.0
-    if player.up:    dy -= 1.0
+    dx = (player.right - player.left) * 1.0
+    dy = (player.down - player.up) * 1.0
 
-    if dx != 0.0 or dy != 0.0:
-        if dx != 0.0 and dy != 0.0:
-            dx *= _INV_SQRT2
-            dy *= _INV_SQRT2
-        speed = PLAYER_SPEED * dt
-        player.x += dx * speed
-        player.y += dy * speed
+    # Normalize diagonal movement so it's not faster
+    if dx and dy:
+        dx *= _INV_SQRT2
+        dy *= _INV_SQRT2
 
-    # Apply the physical curve to the player
+    player.x += dx * PLAYER_SPEED * dt
+    player.y += dy * PLAYER_SPEED * dt
+
     constrain_to_arena(player, is_ball=False)
 
 

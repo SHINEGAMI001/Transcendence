@@ -26,7 +26,7 @@ GOAL_HEIGHT  = 150   # vertical span of each goal
 PLAYER_RADIUS  = 18
 BALL_RADIUS    = 12
 PLAYER_SPEED   = 200.0   # px / second
-PUSH_STRENGTH  = 100.0     # no bounce on touch (carry ball)
+PUSH_STRENGTH  = 120.0     # no bounce on touch (carry ball)
 SHOOT_STRENGTH = 575.0   # px/s impulse on kick (space/enter key)
 
 # --- Friction is specified as a per-SECOND multiplier, not per-tick.
