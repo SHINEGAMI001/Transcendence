@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api, { BACKEND_ORIGIN } from '../api'
-import { formatDate } from '../utils'
+import { formatDate, getAvatarUrl } from '../utils'
 
 function Chat() {
   const { username } = useParams()
@@ -11,6 +11,7 @@ function Chat() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [receiverStatus, setReceiverStatus] = useState({ isOnline: false, lastSeen: null })
+  const [conversations, setConversations] = useState([])
   
   const wsRef = useRef(null)
   const messagesEndRef = useRef(null)
@@ -19,6 +20,16 @@ function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    let isActive = true;
+    api.get('api/chat/conversations')
+      .then(res => {
+        if (isActive) setConversations(res.data)
+      })
+      .catch(e => console.error("Failed to load conversations", e))
+    return () => { isActive = false }
+  }, [username]) // refetch conversations when we switch chats
 
   useEffect(() => {
     let ws;
@@ -48,6 +59,21 @@ function Chat() {
         if (!isActive) return;
         const convId = res.data.conversation_id
         
+        // Fetch message history
+        try {
+          const histRes = await api.get(`api/chat/messages/${convId}`)
+          if (isActive) {
+            const formattedHistory = histRes.data.map(msg => ({
+              text: msg.message,
+              sender: msg.sender,
+              time: new Date(msg.created_at)
+            }))
+            setMessages(formattedHistory)
+          }
+        } catch (e) {
+          console.error("Failed to load message history", e)
+        }
+
         // Construct the WebSocket URL safely depending on protocol
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
         const host = BACKEND_ORIGIN.replace(/^https?:\/\//, '')
@@ -238,11 +264,34 @@ function Chat() {
           <header className="h-20 border-b border-white/10 flex items-center px-6 bg-white/5">
             <h3 className="text-sm font-black tracking-widest text-white/60 uppercase">Conversations</h3>
           </header>
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center text-center opacity-20">
-            <div className="p-4 rounded-full border-2 border-dashed border-white/20 mb-4">
-               <span className="text-3xl">🗂️</span>
-            </div>
-            <p className="text-xs font-bold uppercase tracking-tighter">History coming soon</p>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+            {conversations.length === 0 ? (
+               <div className="flex flex-col items-center justify-center text-center opacity-20 h-full">
+                 <div className="p-4 rounded-full border-2 border-dashed border-white/20 mb-4">
+                    <span className="text-3xl">🗂️</span>
+                 </div>
+                 <p className="text-xs font-bold uppercase tracking-tighter">No History</p>
+               </div>
+            ) : (
+               conversations.map(conv => (
+                 <Link 
+                   key={conv['conversation id']}
+                   to={`/chat/${conv.receiver}`}
+                   className={`block p-3 rounded-xl border transition-all ${conv.receiver === username ? 'bg-green-400/10 border-green-400 flex items-center gap-4' : 'bg-white/5 border-white/10 hover:border-white/30 flex items-center gap-4'}`}
+                 >
+                   <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center font-bold text-white shrink-0 relative overflow-hidden">
+                      {conv.receiver_avatar ? (
+                        <img src={getAvatarUrl(conv.receiver_avatar)} className="w-full h-full object-cover" />
+                      ) : (
+                        conv.receiver[0].toUpperCase()
+                      )}
+                   </div>
+                   <div className="min-w-0">
+                      <p className={`text-sm font-bold truncate ${conv.receiver === username ? 'text-green-400' : 'text-white'}`}>{conv.receiver}</p>
+                   </div>
+                 </Link>
+               ))
+            )}
           </div>
         </aside>
 
