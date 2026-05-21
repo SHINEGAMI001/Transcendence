@@ -176,6 +176,16 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "created_at" : event['created_at']
 
         }))
+    
+    # Friend request notification handler
+    async def request_notify(self, event):
+
+        await self.send(text_data=json.dumps({
+            "info" : event['info'],
+            "request_id" : event['request_id'],
+            "sender" : event['sender'],
+            "created_at" : event['created_at']
+        }))
 
 
 

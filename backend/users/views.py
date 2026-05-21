@@ -314,13 +314,28 @@ def send_request(request):
         if FriendRequest.objects.filter(from_user=send_to, to_user=request.user, status='pending').exists():
                return Response({"error message" : "already have a friend request from this user"}, status=406)
 
-        FriendRequest.objects.create(
+        req = FriendRequest.objects.create(
                from_user = request.user,
                to_user = send_to,
         )
 
         request.user.last_seen = timezone.now()
         request.user.save()
+
+        # Send notification to the other user
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+               f"notification_{send_to.id}", {
+                      "type" : "request_notify",
+                      "info" : "friend request",
+                      "request_id" : req.id,
+                      "sender" : request.user.username,
+                      "created_at" : str(timezone.now())
+               }
+        )
 
 
         return Response({"message" : "friend request sent succsesfuly"}, status=200)
