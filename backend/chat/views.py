@@ -15,6 +15,10 @@ def conv_id(request, username):
     user = request.user
     users = get_user_model()
 
+    if not user.friends.filter(username=username).exists():
+        return Response({"error message" : "user not a friend"}, status=400)
+
+
     if user.username == username:
         return Response({"error message" : "cant start a conv with yourself"}, status=400)
     if not users.objects.filter(username=username).exists():
@@ -85,5 +89,49 @@ def get_messages(request, conv_id):
             "created_at" : message.created_at
         })
     return Response(data, status=200)
+
+
+# Get unread conversations
+@api_view(['GET'])
+def get_unread(request):
+
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+    
+    conversations = Conversation.objects.filter(participants=request.user)
+
+    data = []
+    for conv in conversations:
+        messages = Message.objects.filter(conversation=conv,is_read=False).exclude(sender=request.user)
+        unread_messages = messages.count()
+        if messages.exists():
+            data.append({
+                "conversation id" : conv.id,
+                "sender" : messages.first().sender.username,
+                "unread_messages" : unread_messages
+            })
+    
+    return Response(data, status=200)
+
+
+# Mark message as seen
+@api_view(['POST'])
+def mark_as_seen(request):
+
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+
+    conv_id = request.data.get('conversation_id')
+    conversations = Conversation.objects.filter(id=conv_id)
+
+    if not conversations.exists():
+        return Response({"error message" : "conversation doesnt exist"}, status=404)
+    if not conversations.first().participants.filter(username=request.user.username).exists():
+        return Response({"error message" : "user doesnt belong in the conversation"}, status=404)
+
+    messages = Message.objects.filter(conversation=conversations.first(), is_read=False).exclude(sender=request.user)
+    if messages.exists():
+        messages.update(is_read=True)
+    return Response({"message" : "all good"}, status=200)
 
 

@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
-from .models import FriendRequest
+from .models import FriendRequest, Conversation, Message
 from datetime import timedelta
 from django.utils import timezone
 
@@ -283,7 +283,7 @@ def pub_profile(request, username):
                                "avatar" : user.avatar.url,
                         }
                         request.user.last_seen = timezone.now()
-                        return Response(response, status=201)
+                        return Response(response, status=200)
                 else:
                      response = {"error message" : "user doesnt exist"}
                      return Response(response, status=401)
@@ -409,6 +409,16 @@ def remove_friend(request):
 
         request.user.last_seen = timezone.now()
         request.user.save()
+
+        
+
+        # Remove associated conversations
+        conversations = Conversation.objects.filter(participants=request.user).filter(participants=userr)
+        if conversations.exists():
+               for conv in conversations:
+                      conv.delete()
+               
+
         return Response({"message" : "friend removed"}, status=200)
 
 
@@ -446,20 +456,23 @@ def list_friends(request):
 @api_view(['GET'])
 def check_status(request, username):
         if not request.user.is_authenticated:
-              return Response({"error message", "user not online"}, status=401)
+              return Response({"status": "none", "message": "user not authenticated"}, status=401)
 
         user_name = username
         if user_name == request.user.username:
-               return Response({"error message" : "cant check requests for self"}, status=406)
+               return Response({"status": "none", "message": "cannot check status for self"}, status=200)
+        
         User = get_user_model()
-        checked_user = User.objects.get(username=user_name)
-        reqs = FriendRequest.objects.all()
-        if reqs.filter(from_user=request.user,to_user=checked_user).exists():
-                req = reqs.get(from_user=request.user,to_user=checked_user)
-                return Response({"message" : "friend request status",
-                                 "status" : req.status}, status=200)
+        try:
+                checked_user = User.objects.get(username=user_name)
+        except User.DoesNotExist:
+                return Response({"status": "none", "message": "user not found"}, status=200)
+        
+        request_obj = FriendRequest.objects.filter(from_user=request.user, to_user=checked_user).first()
+        if request_obj:
+                return Response({"status": request_obj.status, "message": "friend request found"}, status=200)
         else:
-               return Response({"error message" : "no pending request"}, status=406)
+               return Response({"status": "none", "message": "no friend request found"}, status=200)
 
 # Check friends online status
 @api_view(['GET'])
