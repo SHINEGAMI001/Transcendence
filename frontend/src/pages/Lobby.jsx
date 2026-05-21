@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useNotifications } from '../context/NotificationContext'
 import api from '../api'
 import SettingsPanel from '../components/SettingsPanel'
 import { getAvatarUrl, formatDate } from '../utils'
@@ -73,6 +74,27 @@ function Lobby() {
   const [friends, setFriends] = useState([])
   const [pendingRequests, setPendingRequests] = useState([])
   const [showRequestsSidebar, setShowRequestsSidebar] = useState(false)
+  const { notifications, clearNotification } = useNotifications()
+
+  const acceptRequest = async (requestId) => {
+    try {
+      await api.post('api/users/friends/accept_request', { request_id: requestId })
+      setPendingRequests(prev => prev.filter(r => r.request_id !== requestId))
+      // Refresh friends list
+      api.get('api/users/friends/list_friends').then(res => setFriends(res.data.friends || [])).catch(() => {})
+    } catch (error) {
+      console.error('Failed to accept request:', error)
+    }
+  }
+
+  const rejectRequest = async (requestId) => {
+    try {
+      await api.post('api/users/friends/reject_request', { request_id: requestId })
+      setPendingRequests(prev => prev.filter(r => r.request_id !== requestId))
+    } catch (error) {
+      console.error('Failed to reject request:', error)
+    }
+  }
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -150,7 +172,7 @@ function Lobby() {
           <div className="flex items-center gap-6">
             <button onClick={() => setShowRequestsSidebar(true)} className="relative p-2 text-xl hover:scale-110 transition-transform hover:text-green-400 cursor-pointer">
                🔔
-               {pendingRequests.length > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg transform translate-x-1 -translate-y-1">{pendingRequests.length}</span>}
+               {(pendingRequests.length > 0 || notifications.length > 0) && <span className="absolute top-0 right-0 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg transform translate-x-1 -translate-y-1">{pendingRequests.length + notifications.length}</span>}
             </button>
             <Link to="/profile" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-all">
               <div className="text-right flex flex-col">
@@ -169,11 +191,27 @@ function Lobby() {
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setShowRequestsSidebar(false)} />
             <aside className="fixed right-0 top-0 bottom-0 w-80 bg-dark-surface/95 backdrop-blur-2xl border-l border-dark-border z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
               <div className="p-6 border-b border-dark-border flex items-center justify-between">
-                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2"><span className="text-green-400">🛎️</span> Friend Requests</h2>
+                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2"><span className="text-green-400">🛎️</span> Notifications</h2>
                 <button onClick={() => setShowRequestsSidebar(false)} className="w-8 h-8 rounded-full bg-dark-bg/50 hover:bg-error/20 hover:text-error flex items-center justify-center transition-colors cursor-pointer">✕</button>
               </div>
               <div className="flex-1 overflow-y-auto p-5 space-y-3">
-                {pendingRequests.length > 0 ? pendingRequests.map(req => (
+                
+                {/* Chat Notifications */}
+                {notifications.length > 0 && notifications.map((notif, idx) => (
+                  <div key={`notif-${idx}`} className="p-4 bg-white/5 border border-white/10 rounded-xl shadow-lg flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-green-400">{notif.sender}</p>
+                      <p className="text-xs text-text-muted leading-tight">{notif.info || 'Sent a new message'}</p>
+                    </div>
+                    <div className="flex gap-2">
+                       <Link to={`/chat/${notif.sender}`} onClick={() => setShowRequestsSidebar(false)} className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded hover:bg-green-500 hover:text-white transition">Chat</Link>
+                       <button onClick={() => clearNotification(idx)} className="px-2 py-1 bg-red-500/10 text-red-400 text-xs font-bold rounded hover:bg-red-500 hover:text-white transition">✕</button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Friend Requests */}
+                {pendingRequests.length > 0 && pendingRequests.map(req => (
                     <div key={req.request_id} className="p-4 bg-dark-bg/50 border border-dark-border rounded-xl shadow-lg">
                       <div className="flex items-center gap-3 mb-3">
                          <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center overflow-hidden shrink-0">
@@ -181,9 +219,19 @@ function Lobby() {
                          </div>
                          <div><p className="text-sm font-bold text-text-primary">{req.from_user}</p><p className="text-xs text-text-muted leading-tight">wants to be your friend</p></div>
                       </div>
-                      <Link to={`/user/${req.from_user}`} onClick={() => setShowRequestsSidebar(false)} className="block w-full py-2 text-center text-xs font-semibold bg-green-400/10 border border-green-400/30 text-green-400 hover:bg-green-400 hover:text-white rounded-lg transition-all">View Profile to Respond</Link>
+                      <div className="flex gap-2 mt-2">
+                         <button onClick={() => acceptRequest(req.request_id)} className="flex-1 py-1.5 text-xs font-semibold bg-green-500/10 border border-green-500/30 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all">Accept</button>
+                         <button onClick={() => rejectRequest(req.request_id)} className="flex-1 py-1.5 text-xs font-semibold bg-error/10 border border-error/30 text-error hover:bg-error hover:text-white rounded-lg transition-all">Reject</button>
+                      </div>
                     </div>
-                )) : <div className="py-12 text-center space-y-3 text-text-muted"><p className="text-3xl">📭</p><p className="text-sm">No pending requests.</p></div>}
+                ))}
+
+                {(pendingRequests.length === 0 && notifications.length === 0) && (
+                  <div className="py-12 text-center space-y-3 text-text-muted">
+                    <p className="text-3xl">📭</p>
+                    <p className="text-sm">No new notifications.</p>
+                  </div>
+                )}
               </div>
             </aside>
           </>

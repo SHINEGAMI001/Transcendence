@@ -203,7 +203,7 @@ def advanced_search(request):
         if level_gt:
                users = users.filter(level__gt=level_gt)
         
-                # less than
+                # less thanPlease enter the correct username and password for a staff account. Note that both fields may be case-sensitive.
         level_lt = request.GET.get('level_lt')
         if level_lt:
                users= users.filter(level__lt=level_lt)
@@ -459,7 +459,7 @@ def check_status(request, username):
                 return Response({"message" : "friend request status",
                                  "status" : req.status}, status=200)
         else:
-               return Response({"error message" : "no pending request"}, status=406)
+               return Response({"error message" : "no pending request"}, status=200)
 
 # Check friends online status
 @api_view(['GET'])
