@@ -203,7 +203,7 @@ def advanced_search(request):
         if level_gt:
                users = users.filter(level__gt=level_gt)
         
-                # less than
+                # less thanPlease enter the correct username and password for a staff account. Note that both fields may be case-sensitive.
         level_lt = request.GET.get('level_lt')
         if level_lt:
                users= users.filter(level__lt=level_lt)
