@@ -72,10 +72,15 @@ function PublicProfile() {
           if (incoming) {
             setFriendStatus('incoming_request')
             setIncomingRequestId(incoming.request_id)
-          } else if (statusRes.data?.status === 'pending') {
-            setFriendStatus('outgoing_request')
           } else {
-            setFriendStatus('none')
+            // Check outgoing request status
+            const requestStatus = statusRes.data?.status || 'none'
+            if (requestStatus === 'pending') {
+              setFriendStatus('outgoing_request')
+            } else {
+              // 'rejected', 'none', or other statuses
+              setFriendStatus('none')
+            }
           }
         }
       }
@@ -99,10 +104,11 @@ function PublicProfile() {
     setActionLoading(true)
     try {
       await api.post('api/users/friends/send_request', { username })
-      setFriendStatus('outgoing_request')
+      // Refetch to sync state with backend
+      await fetchPublicProfile()
     } catch (err) {
       if (err.response?.status === 406) {
-        setFriendStatus('outgoing_request')
+        await fetchPublicProfile()
       } else if (err.response?.status === 405) {
         alert("You can't send a friend request to yourself!")
       } else {
@@ -117,9 +123,12 @@ function PublicProfile() {
     setActionLoading(true)
     try {
       await api.post('api/users/friends/remove_friend', { username })
-      setFriendStatus('none')
+      // Refetch to sync state with backend
+      await fetchPublicProfile()
     } catch (err) {
       alert("Failed to remove friend.")
+      // Refetch to restore correct state if removal failed
+      await fetchPublicProfile()
     } finally {
       setActionLoading(false)
     }
@@ -129,7 +138,8 @@ function PublicProfile() {
     setActionLoading(true)
     try {
       await api.post('api/users/friends/accept_request', { request_id: incomingRequestId })
-      setFriendStatus('friend')
+      // Refetch to sync state with backend
+      await fetchPublicProfile()
     } catch (err) {
       alert("Failed to accept friend request.")
     } finally {
@@ -141,7 +151,8 @@ function PublicProfile() {
     setActionLoading(true)
     try {
       await api.post('api/users/friends/reject_request', { request_id: incomingRequestId })
-      setFriendStatus('none')
+      // Refetch to sync state with backend
+      await fetchPublicProfile()
     } catch (err) {
       alert("Failed to reject friend request.")
     } finally {
