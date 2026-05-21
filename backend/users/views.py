@@ -468,9 +468,26 @@ def check_status(request, username):
         except User.DoesNotExist:
                 return Response({"status": "none", "message": "user not found"}, status=200)
         
-        request_obj = FriendRequest.objects.filter(from_user=request.user, to_user=checked_user).first()
-        if request_obj:
-                return Response({"status": request_obj.status, "message": "friend request found"}, status=200)
+        # Prioritize pending requests over old rejected/accepted ones
+        pending = FriendRequest.objects.filter(
+                from_user=request.user, to_user=checked_user, status='pending'
+        ).first()
+        if pending:
+                return Response({"status": "pending", "message": "friend request found"}, status=200)
+
+        # Also check reverse direction (they sent us a request)
+        pending_incoming = FriendRequest.objects.filter(
+                from_user=checked_user, to_user=request.user, status='pending'
+        ).first()
+        if pending_incoming:
+                return Response({"status": "pending", "direction": "incoming", "message": "incoming request found"}, status=200)
+
+        # No pending requests — return the latest outgoing status
+        latest = FriendRequest.objects.filter(
+                from_user=request.user, to_user=checked_user
+        ).order_by('-created_at').first()
+        if latest:
+                return Response({"status": latest.status, "message": "friend request found"}, status=200)
         else:
                return Response({"status": "none", "message": "no friend request found"}, status=200)
 

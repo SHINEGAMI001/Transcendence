@@ -12,8 +12,10 @@ function Chat() {
   const [error, setError] = useState('')
   const [receiverStatus, setReceiverStatus] = useState({ isOnline: false, lastSeen: null })
   const [conversations, setConversations] = useState([])
+  const [unreadMap, setUnreadMap] = useState({}) // { conversationId: { count, sender } }
   
   const wsRef = useRef(null)
+  const convIdRef = useRef(null)
   const messagesEndRef = useRef(null)
 
   // Auto-scroll to bottom of messages
@@ -21,15 +23,37 @@ function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Fetch conversations and unread counts
   useEffect(() => {
     let isActive = true;
-    api.get('api/chat/conversations')
-      .then(res => {
-        if (isActive) setConversations(res.data)
-      })
-      .catch(e => console.error("Failed to load conversations", e))
+
+    async function fetchConversationsAndUnread() {
+      try {
+        const [convRes, unreadRes] = await Promise.all([
+          api.get('api/chat/conversations'),
+          api.get('api/chat/getunread/')
+        ])
+        if (!isActive) return
+
+        setConversations(convRes.data)
+
+        // Build unread map: { conversationId: { count, sender } }
+        const map = {}
+        for (const item of unreadRes.data) {
+          map[item['conversation id']] = {
+            count: item.unread_messages,
+            sender: item.sender
+          }
+        }
+        setUnreadMap(map)
+      } catch (e) {
+        console.error("Failed to load conversations/unread", e)
+      }
+    }
+
+    fetchConversationsAndUnread()
     return () => { isActive = false }
-  }, [username]) // refetch conversations when we switch chats
+  }, [username])
 
   useEffect(() => {
     let ws;
@@ -58,6 +82,7 @@ function Chat() {
         const res = await api.get(`api/chat/conversation_id/${username}`)
         if (!isActive) return;
         const convId = res.data.conversation_id
+        convIdRef.current = convId
         
         // Fetch message history
         try {
@@ -72,6 +97,19 @@ function Chat() {
           }
         } catch (e) {
           console.error("Failed to load message history", e)
+        }
+
+        // Mark messages as read when entering the conversation
+        try {
+          await api.post('api/chat/markasseen/', { conversation_id: convId })
+          // Clear unread count for this conversation in sidebar
+          setUnreadMap(prev => {
+            const updated = { ...prev }
+            delete updated[convId]
+            return updated
+          })
+        } catch (e) {
+          console.error("Failed to mark messages as seen", e)
         }
 
         // Construct the WebSocket URL safely depending on protocol
@@ -101,6 +139,11 @@ function Chat() {
               sender: data.sender,
               time: new Date() 
             }])
+            // Mark as read immediately since we're currently viewing this chat
+            if (convIdRef.current) {
+              api.post('api/chat/markasseen/', { conversation_id: convIdRef.current })
+                .catch(() => {})
+            }
           }
         }
 
@@ -131,6 +174,7 @@ function Chat() {
         ws.close()
       }
       wsRef.current = null
+      convIdRef.current = null
     }
   }, [username])
 
@@ -273,24 +317,40 @@ function Chat() {
                  <p className="text-xs font-bold uppercase tracking-tighter">No History</p>
                </div>
             ) : (
-               conversations.map(conv => (
-                 <Link 
-                   key={conv['conversation id']}
-                   to={`/chat/${conv.receiver}`}
-                   className={`block p-3 rounded-xl border transition-all ${conv.receiver === username ? 'bg-green-400/10 border-green-400 flex items-center gap-4' : 'bg-white/5 border-white/10 hover:border-white/30 flex items-center gap-4'}`}
-                 >
-                   <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center font-bold text-white shrink-0 relative overflow-hidden">
-                      {conv.receiver_avatar ? (
-                        <img src={getAvatarUrl(conv.receiver_avatar)} className="w-full h-full object-cover" />
-                      ) : (
-                        conv.receiver[0].toUpperCase()
-                      )}
-                   </div>
-                   <div className="min-w-0">
-                      <p className={`text-sm font-bold truncate ${conv.receiver === username ? 'text-green-400' : 'text-white'}`}>{conv.receiver}</p>
-                   </div>
-                 </Link>
-               ))
+               conversations.map(conv => {
+                 const convId = conv['conversation id']
+                 const unread = unreadMap[convId]
+                 const isActive = conv.receiver === username
+
+                 return (
+                   <Link 
+                     key={convId}
+                     to={`/chat/${conv.receiver}`}
+                     className={`block p-3 rounded-xl border transition-all ${isActive ? 'bg-green-400/10 border-green-400 flex items-center gap-4' : 'bg-white/5 border-white/10 hover:border-white/30 flex items-center gap-4'}`}
+                   >
+                     <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center font-bold text-white shrink-0 relative overflow-hidden">
+                        {conv.receiver_avatar ? (
+                          <img src={getAvatarUrl(conv.receiver_avatar)} className="w-full h-full object-cover" />
+                        ) : (
+                          conv.receiver[0].toUpperCase()
+                        )}
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold truncate ${isActive ? 'text-green-400' : 'text-white'}`}>{conv.receiver}</p>
+                        {unread && !isActive && (
+                          <p className="text-[10px] text-green-400/70 mt-0.5 truncate">
+                            {unread.count} new message{unread.count > 1 ? 's' : ''}
+                          </p>
+                        )}
+                     </div>
+                     {unread && !isActive && (
+                       <span className="w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold text-white flex items-center justify-center shrink-0 animate-pulse">
+                         {unread.count}
+                       </span>
+                     )}
+                   </Link>
+                 )
+               })
             )}
           </div>
         </aside>
