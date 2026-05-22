@@ -56,4 +56,39 @@ python manage.py migrate #runs sql commands to create that blueprint
  #after creating models django knows but database doesnt so u should always do this for updates to take place in database (this doesnt apply for actual data only when database structure changes)
 ```
 ### backend available apis
-- [POST] localhost:8000/api/auth/register
+* check [views.py](backend/users/views.py) for views functions and [urls.py](backend/users/urls.py) for url routing
+- Users endpoints:
+    - [POST] localhost:8000/api/auth/register/
+    - [POST] localhost:8000/api/auth/login/
+    - [GET] localhost:8000/api/profile/me
+    - [PUT] localhost:8000/api/avatar/update
+    - [GET] localhost:8000/api/auth/logout
+    - [PUT] localhost:8000/api/profile/update
+    - [DELETE] localhost:8000/api/profile/delete
+    - [GET] localhost:8000/api/users/search/
+        ```bash
+        example request url:
+        localhost:8000/api/users/search/?q=username&xp_lt=xp&order=wins&desc=1
+        ```
+    - [GET] localhost:8000/api/users/profile/pub/<fixed_username>
+
+- Friends endpoints:
+    - [POST] localhost:8000/api/users/friends/send_request
+    - [GET] localhost:8000/api/users/friends/friend_requests
+    - [POST] localhost:8000/api/users/friends/accept_request
+    - [POST] localhost:8000/api/users/friends/reject_request
+    - [POST] localhost:8000/api/users/friends/remove_friend
+    - [GET] localhost:8000/api/users/friends/list_friends
+    - [GET] localhost:8000/api/users/friends/check_status/<fixed_username>
+    - [GET] localhost:8000/api/users/friends/friend_status/<fixed_username>
+
+- Chat endpoints:
+    - [GET] localhost:8000/api/chat/conversation_id/<fixed_username>
+    - [GET] localhost:8000/api/chat/messages/<int:conversation_id>
+    - [GET] localhost:8000/api/chat/conversations/
+    - [GET] localhost:8000/api/chat/getunread/
+    - [POST] localhost:8000/api/chat/markasseen/
+
+    ### Backend websocket connection
+    - localhost:8000/ws/chat/<int:conversation_id>
+    - localhost:8000/ws/notifications/

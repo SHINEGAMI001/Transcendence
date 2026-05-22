@@ -15,14 +15,39 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from . import settings
+from django.conf.urls.static import static
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns  # 1. ADD THIS IMPORT
 
+def home(request):
+    data = {
+            "message" : "django app is up",
+            "usage/" : {
+                  "admin" : "localhost:8000/admin",
+                  "register" : "localhost:8000/api/auth/register",
+                  "login" : "localhost:8000/api/auth/login",
+                  "profile" : "localhost:8000/api/profile/me"
+                  }
+            }
+    return JsonResponse(data)
+
+def home(request):
+    data = {
+            "message" : "django app is up",
+            "usage/" : {
+                  "admin" : "localhost:8000/admin",
+                  "register" : "localhost:8000/api/auth/register",
+                  "login" : "localhost:8000/api/auth/login",
+                  "profile" : "localhost:8000/api/profile/me"
+                  }
+            }
+    return JsonResponse(data)
+
 urlpatterns = [
+    path('', home),
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
-    path('game/', include('game.urls')),
-]
-
-urlpatterns += staticfiles_urlpatterns()
+    path('api/chat/', include('chat.urls'))
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
