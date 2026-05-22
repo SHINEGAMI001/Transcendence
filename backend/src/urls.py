@@ -19,6 +19,19 @@ from . import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns  # 1. ADD THIS IMPORT
+
+def home(request):
+    data = {
+            "message" : "django app is up",
+            "usage/" : {
+                  "admin" : "localhost:8000/admin",
+                  "register" : "localhost:8000/api/auth/register",
+                  "login" : "localhost:8000/api/auth/login",
+                  "profile" : "localhost:8000/api/profile/me"
+                  }
+            }
+    return JsonResponse(data)
 
 def home(request):
     data = {
