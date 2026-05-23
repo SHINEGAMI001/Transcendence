@@ -33,21 +33,10 @@ def home(request):
             }
     return JsonResponse(data)
 
-def home(request):
-    data = {
-            "message" : "django app is up",
-            "usage/" : {
-                  "admin" : "localhost:8000/admin",
-                  "register" : "localhost:8000/api/auth/register",
-                  "login" : "localhost:8000/api/auth/login",
-                  "profile" : "localhost:8000/api/profile/me"
-                  }
-            }
-    return JsonResponse(data)
-
 urlpatterns = [
     path('', home),
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
-    path('api/chat/', include('chat.urls'))
+    path('api/chat/', include('chat.urls')),
+    path('api/game/', include('game.urls'))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
