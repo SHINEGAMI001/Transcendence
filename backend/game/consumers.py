@@ -8,6 +8,8 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from .state import get_or_create_room, get_room, delete_room
 from .engine import apply_input, tick
 
+from channels.db import database_sync_to_async
+
 logger = logging.getLogger(__name__)
 TICK_RATE = 60
 TICK_INTERVAL = 1.0 / TICK_RATE
@@ -16,34 +18,24 @@ TICK_INTERVAL = 1.0 / TICK_RATE
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
+        self.user = self.scope['user']
         self.player_id = self.channel_name
+
+        # Check user authentication
+        if not self.user.is_authenticated:
+            print("user not authenticated", flush=True)
+            await self.close(code=4001)
+            return
+        
+        # Check if game exists
+        game = await self.get_game(self.room_id)
+        if not game:
+            self.close(code=4004)
+            return
+
+        # Connect user
         await self.accept()
 
-        room = await get_or_create_room(self.room_id)
-        room.add_player(self.player_id)
-        room.register_consumer(self.player_id, self)
-
-        player = room.players.get(self.player_id)
-        await self.send(text_data=json.dumps({
-            "type": "init",
-            "player_id": self.player_id,
-            "team": player.team if player else "left",
-            "arena": {"width": 800, "height": 500},
-        }))
-
-        # FIX: Check if task is None OR if it is done (crashed/exited)
-        if room.loop_task is None or room.loop_task.done():
-            room.running = True
-            room.last_tick_time = time.monotonic()
-            room.loop_task = asyncio.create_task(
-                _game_loop(room), name=f"game_loop_{self.room_id}")
-            logger.info("[%s] Game loop started", self.room_id)
-        else:
-            # If the loop is alive but paused, wake it up
-            room.running = True
-
-        logger.info("[%s] Player joined: %s (%d players)",
-                    self.room_id, self.player_id[:12], room.player_count())
 
     async def disconnect(self, close_code):
         room = get_room(self.room_id)
@@ -53,6 +45,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         room.unregister_consumer(self.player_id)
         logger.info("[%s] Player left: %s (%d remain)",
                     self.room_id, self.player_id[:12], room.player_count())
+    
+        if room.winner:
+            await self.save_winner(room.winner)
 
         if room.is_empty():
             room.running = False
@@ -75,6 +70,56 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         msg_type = msg.get("type")
+
+        # New user joins
+        if msg_type == "join":
+            team = msg.get("team")
+
+            if team not in ["team_a", "team_b"]:
+                await self.send(text_data = json.dumps({
+                    "type" : "error",
+                    "message" : "invalid team"
+                }))
+            # Check if user in team
+            game = await self.get_game(self.room_id)
+            is_valid = await self.check_team(game, self.user, team)
+
+            if not is_valid:
+                await self.send(text_data=json.dumps({
+                    "type" : "error",
+                    "message" : "user not in this team"
+                }))
+                return
+            
+            room = await get_or_create_room(self.user.id)
+            try:
+                # register player for stats
+                room.add_player(self.user.id, self.user, team)
+                room.register_consumer(self.player_id, self)
+
+                # send init message
+                await self.send(text_data=json.dumps({
+                    "type" : "init",
+                    "player_id" : self.player_id,
+                    "username" : self.user.username,
+                    "team" : team,
+                    "arena" : {"width" : 800, "height": 500}
+                }))
+                # Start game loop
+                if room.loop_task is None or room.loop_task.done():
+                    room.running = True
+                    room.last_tick_time = time.monotonic()
+                    room.loop_task = asyncio.create_task(
+                        _game_loop(room), name=f"game_loop_{self.room_id}")
+                    logger.info("[%s] Game loop started", self.room_id)
+                else:
+                    room.running = True
+            
+                logger.info("[%s] Player joined: %s (%d players)",
+                        self.room_id, self.player_id[:12], room.player_count())
+            except Exception as e:
+                await self.send(json.dumps({"type": "error", "message": str(e)}))
+                return
 
         # ── Ping / pong ───────────────────────────────────────────────────────
         if msg_type == "ping":
@@ -102,6 +147,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                     asyncio.create_task(consumer.send(text_data=payload))
             return
 
+        if msg_type == "game_ended":
+            # clean close when game ends
+            await self.close(code=1000)
+            return
         # ── Player input ──────────────────────────────────────────────────────
         if msg_type != "input":
             return
@@ -119,6 +168,61 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def game_state(self, event):
         await self.send(text_data=event["payload"])
+    
+     # Helper function
+    # Get game for database
+    @database_sync_to_async
+    def get_game(self, game_id):
+        from .models import Game
+
+        game = Game.objects.filter(id=game_id)
+        
+        return game.first()
+
+    # Check if user in team    
+    @database_sync_to_async
+    def check_team(self, game, user, team):
+        if team == "team_a":
+            return game.team_a.filter(id=user.id).exists()
+        else:
+            return game.team_b.filter(id=user.id).exists()
+    
+    # save winner info in database
+    @database_sync_to_async
+    def save_winner(self, winner):
+        from .models import Game
+
+        game = Game.objects.get(id=self.room_id)
+        if winner == "left":
+            game.winner_team = "team_a"
+            game.save()
+        else:
+            game.winner_team = "team_b"
+            game.save()
+        
+        if winner == "left":
+            for users in game.team_a.all():
+                users.wins += 1
+                users.xp += 100
+                users.level = (users.xp // 100) + 1
+                users.save()
+            for users in game.team_b:
+                users.losses += 1
+                users.xp += 10
+                users.level = (users.xp // 100) + 1
+                users.save()
+        else:
+            for users in game.team_b:
+                users.wins += 1
+                users.xp += 100
+                users.level = (users.xp // 100) + 1
+                users.save()
+            for users in game.team_a:
+                users.losses += 1
+                users.xp += 10
+                users.level = (users.xp // 100) + 1
+                users.save()
+
 
 
 async def _game_loop(room):

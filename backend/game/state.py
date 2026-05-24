@@ -198,20 +198,33 @@ class RoomState:
             "winner":  self.winner,
         }
 
-    def add_player(self, player_id: str) -> PlayerState:
-        """Assign spawn position and team based on join order."""
-        slot = len(self.players)
-        if slot == 0:
+    def add_player(self, player_id: str, user, team: str) -> PlayerState:
+        # Assign team according to frontend choosen team
+
+        if team == "team_a":
             x, y = ARENA_WIDTH * 0.20, ARENA_HEIGHT / 2.0
-            team = "left"
-        elif slot == 1:
-            x, y = ARENA_WIDTH * 0.80, ARENA_HEIGHT / 2.0
-            team = "right"
+            team_name = "left"
         else:
-            # Extra players: alternate teams, offset positions
-            team = "left" if slot % 2 == 0 else "right"
-            x = ARENA_WIDTH * 0.30 if team == "left" else ARENA_WIDTH * 0.70
-            y = ARENA_HEIGHT * 0.3 + (slot - 2) * 60
+            x, y = ARENA_WIDTH * 0.80, ARENA_HEIGHT / 2.0
+            team_name = "right"
+
+        team_players = [p for p in self.players.values() if p.team == team_name]
+        if team_players:
+            y = ARENA_HEIGHT * 0.3 + len(team_players) * 60
+
+        # """Assign spawn position and team based on join order."""
+        # slot = len(self.players)
+        # if slot == 0:
+        #     x, y = ARENA_WIDTH * 0.20, ARENA_HEIGHT / 2.0
+        #     team = "left"
+        # elif slot == 1:
+        #     x, y = ARENA_WIDTH * 0.80, ARENA_HEIGHT / 2.0
+        #     team = "right"
+        # else:
+        #     # Extra players: alternate teams, offset positions
+        #     team = "left" if slot % 2 == 0 else "right"
+        #     x = ARENA_WIDTH * 0.30 if team == "left" else ARENA_WIDTH * 0.70
+        #     y = ARENA_HEIGHT * 0.3 + (slot - 2) * 60
         p = PlayerState(player_id=player_id, x=x, y=y, team=team)
         self.players[player_id] = p
         return p

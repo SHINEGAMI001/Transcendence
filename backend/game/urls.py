@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import game_home
+from . import views
 
 urlpatterns = [
-    path('', game_home),
+    path('', views.game_home),
+    path('create/', views.create_game),
 ]
