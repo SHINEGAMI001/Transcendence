@@ -129,6 +129,34 @@ def add_player(request):
 
 
 
+# List all current public games
+@api_view(['GET'])
+def list_games(request):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+
+    games = Game.objects.filter(type='public')
+    if not games.exists():
+        return Response({"message" : "no games for now"}, status=204)
+
+    games_count = games.count()
+    games_data = []
+    for game in games:
+        games_data.append({
+            "id" : game.id,
+            "type" : game.type,
+            "team_a_count" : game.team_a_count,
+            "team_b_count" : game.team_b_count,
+            "max_players" : game.max_players,
+            "created_by" : game.created_by.username,
+            "created_at" : game.created_at,
+        })
+    
+    return Response({
+        "message" : "all games",
+        "games_count" : games_count,
+        "listed_games" : games_data
+    }, status=200)
 
 # End game endpoint
     
