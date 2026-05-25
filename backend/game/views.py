@@ -78,5 +78,58 @@ def create_game(request):
 
     return Response(Data, status=200)
 
+
+# Join user in a public game endpoint
+@api_view(['POST'])
+def add_player(request):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+
+    game_id = request.data.get("game_id")
+    team = request.data.get("team")
+
+    game = Game.objects.filter(id=game_id).first()
+    if not game:
+        return Response({"error message" : "game doesnt exist"}, status=404)
+
+    # Check current players count
+    if game.team_a_count + game.team_b_count >= game.max_players:
+        return Response({"error message" : "game full"}, status=402)
+
+
+    # validate team and check if already in team
+    # Add player to team
+    if team in ["team_a", "team_b"]:
+        if team == "team_a":
+            user = game.team_a.filter(username=request.user.username).first()
+            if user:
+                if request.user.username == user.username:
+                    return Response({"error message" : "user already in team"}, status=405)
+
+            game.team_a.add(request.user)
+            game.team_a_count += 1
+        else:
+            user = game.team_b.filter(username=request.user.username).first()
+            if user:
+                if request.user.username == user.username:
+                    return Response({"error message" : "user already in team"}, status=405)
+
+            game.team_b.add(request.user)
+            game.team_b_count += 1
+    else:
+        return Response({"error message" : "invalid team"}, status=404)
+    
+    game.save()
+        
+    return Response({"message" : "player added to the game",
+                    "user" : request.user.username,
+                    "team" : team,
+                    "players_count" : game.team_a_count + game.team_b_count,
+                    "game_id" : str(game.id)})
+
+
+
+
+# End game endpoint
     
 
