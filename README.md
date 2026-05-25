@@ -89,6 +89,11 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [GET] localhost:8000/api/chat/getunread/
     - [POST] localhost:8000/api/chat/markasseen/
 
-    ### Backend websocket connection
+- Game endpoints:
+    - [POST] localhost:8000/api/game/create
+    - [POST] localhost:8000/api/game/join
+
+### Backend websocket connection
     - localhost:8000/ws/chat/<int:conversation_id>
     - localhost:8000/ws/notifications/
+    - localhost:8000/ws/game/<uuid:room_id>/

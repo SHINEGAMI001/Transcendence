@@ -150,7 +150,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
-        
 
     
     async def receive(self, text_data):
@@ -167,7 +166,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     
     # Notification handler
     async def message_notify(self, event):
-        
 
         await self.send(text_data=json.dumps({
             "info" : event['info'],
