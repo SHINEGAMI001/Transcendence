@@ -60,6 +60,16 @@ function FriendItem({ friend }) {
           <p className="text-[10px] text-white/50 capitalize truncate font-medium">{statusLabel}</p>
         </div>
       </Link>
+      
+      {/* Chat Shortcut */}
+      <Link 
+        to={`/chat/${friend.username}`} 
+        className="relative z-10 p-2 text-white/30 hover:text-green-400 hover:bg-green-400/10 rounded-xl transition-all cursor-pointer"
+        title={`Chat with ${friend.username}`}
+      >
+        💬
+      </Link>
+
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
     </div>
   )
@@ -87,10 +97,14 @@ function Lobby() {
     
     setUnreadLoading(true)
     try {
-      const res = await api.get('api/chat/getunread/')
-      setUnreadConvos(res.data || [])
+      const [chatRes, reqRes] = await Promise.all([
+        api.get('api/chat/getunread/').catch(() => ({ data: [] })),
+        api.get('api/users/friends/friend_requests').catch(() => ({ data: { 'pending requests': [] } }))
+      ])
+      setUnreadConvos(chatRes.data || [])
+      setPendingRequests(reqRes.data['pending requests'] || [])
     } catch (e) {
-      console.error('Failed to fetch unread messages', e)
+      console.error('Failed to fetch notifications', e)
     } finally {
       setUnreadLoading(false)
     }

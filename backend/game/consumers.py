@@ -91,7 +91,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 }))
                 return
             
-            room = await get_or_create_room(self.user.id)
+            room = await get_or_create_room(self.room_id)
             try:
                 # register player for stats
                 room.add_player(self.user.id, self.user, team)

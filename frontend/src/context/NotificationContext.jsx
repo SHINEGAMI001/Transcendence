@@ -71,7 +71,9 @@ export function NotificationProvider({ children }) {
 
   const handlePopupClick = (popup) => {
     setPopups(prev => prev.filter(p => p.id !== popup.id));
-    if (popup.sender) {
+    if (popup.info === 'friend request' && popup.sender) {
+      navigate('/lobby');
+    } else if (popup.sender) {
       navigate(`/chat/${popup.sender}`);
     }
   };
@@ -85,7 +87,9 @@ export function NotificationProvider({ children }) {
             onClick={() => handlePopupClick(popup)}
             className="pointer-events-auto w-full max-w-xs bg-black/70 backdrop-blur-lg border border-green-400/30 rounded-xl shadow-[0_5px_20px_rgba(34,197,94,0.15)] px-4 py-3 animate-in slide-in-from-top-10 fade-in duration-500 ease-out flex items-center gap-3 cursor-pointer hover:bg-black/80 hover:border-green-400/50 hover:shadow-[0_5px_25px_rgba(34,197,94,0.25)] transition-all group"
           >
-            <div className="text-lg group-hover:scale-110 transition-transform">💬</div>
+            <div className="text-lg group-hover:scale-110 transition-transform">
+              {popup.info === 'friend request' ? '👋' : '💬'}
+            </div>
             <div className="flex-1 min-w-0">
                <h4 className="text-sm font-bold text-green-400 truncate leading-tight">{popup.sender}</h4>
                <p className="text-[10px] text-white/70 mt-0.5 truncate leading-tight">{popup.info || 'New message'}</p>
