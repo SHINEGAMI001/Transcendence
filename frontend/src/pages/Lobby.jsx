@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useNotifications } from '../context/NotificationContext'
 import api from '../api'
 import SettingsPanel from '../components/SettingsPanel'
 import { getAvatarUrl, formatDate } from '../utils'
@@ -59,6 +60,16 @@ function FriendItem({ friend }) {
           <p className="text-[10px] text-white/50 capitalize truncate font-medium">{statusLabel}</p>
         </div>
       </Link>
+      
+      {/* Chat Shortcut */}
+      <Link 
+        to={`/chat/${friend.username}`} 
+        className="relative z-10 p-2 text-white/30 hover:text-green-400 hover:bg-green-400/10 rounded-xl transition-all cursor-pointer"
+        title={`Chat with ${friend.username}`}
+      >
+        💬
+      </Link>
+
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
     </div>
   )
@@ -73,12 +84,58 @@ function Lobby() {
   const [friends, setFriends] = useState([])
   const [pendingRequests, setPendingRequests] = useState([])
   const [showRequestsSidebar, setShowRequestsSidebar] = useState(false)
+  const [unreadConvos, setUnreadConvos] = useState([])
+  const [unreadLoading, setUnreadLoading] = useState(false)
+  const { notifications, clearNotification, setNotifications } = useNotifications()
+
+  const openNotificationsSidebar = async () => {
+    setShowRequestsSidebar(true)
+    // Clear realtime WebSocket notifications so the red dot goes away once you look
+    if (notifications.length > 0 && setNotifications) {
+      setNotifications([])
+    }
+    
+    setUnreadLoading(true)
+    try {
+      const [chatRes, reqRes] = await Promise.all([
+        api.get('api/chat/getunread/').catch(() => ({ data: [] })),
+        api.get('api/users/friends/friend_requests').catch(() => ({ data: { 'pending requests': [] } }))
+      ])
+      setUnreadConvos(chatRes.data || [])
+      setPendingRequests(reqRes.data['pending requests'] || [])
+    } catch (e) {
+      console.error('Failed to fetch notifications', e)
+    } finally {
+      setUnreadLoading(false)
+    }
+  }
+
+  const acceptRequest = async (requestId) => {
+    try {
+      await api.post('api/users/friends/accept_request', { request_id: requestId })
+      setPendingRequests(prev => prev.filter(r => r.request_id !== requestId))
+      // Refresh friends list
+      api.get('api/users/friends/list_friends').then(res => setFriends(res.data.friends || [])).catch(() => {})
+    } catch (error) {
+      console.error('Failed to accept request:', error)
+    }
+  }
+
+  const rejectRequest = async (requestId) => {
+    try {
+      await api.post('api/users/friends/reject_request', { request_id: requestId })
+      setPendingRequests(prev => prev.filter(r => r.request_id !== requestId))
+    } catch (error) {
+      console.error('Failed to reject request:', error)
+    }
+  }
 
   useEffect(() => {
     if (isLoggedIn) {
       api.get('api/profile/me').then(res => setUser(res.data)).catch(() => {})
       api.get('api/users/friends/list_friends').then(res => setFriends(res.data.friends || [])).catch(() => {})
       api.get('api/users/friends/friend_requests').then(res => setPendingRequests(res.data['pending requests'] || [])).catch(() => {})
+      api.get('api/chat/getunread/').then(res => setUnreadConvos(res.data || [])).catch(() => {})
     }
   }, [isLoggedIn])
 
@@ -148,9 +205,9 @@ function Lobby() {
             <h2 className="text-xl font-bold tracking-tight text-green-400 italic drop-shadow-[0_2px_10px_rgba(34,197,94,0.3)]">⚽ KICK OFF — LOBBY</h2>
           </div>
           <div className="flex items-center gap-6">
-            <button onClick={() => setShowRequestsSidebar(true)} className="relative p-2 text-xl hover:scale-110 transition-transform hover:text-green-400 cursor-pointer">
+            <button onClick={openNotificationsSidebar} className="relative p-2 text-xl hover:scale-110 transition-transform hover:text-green-400 cursor-pointer">
                🔔
-               {pendingRequests.length > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg transform translate-x-1 -translate-y-1">{pendingRequests.length}</span>}
+               {(pendingRequests.length > 0 || unreadConvos.length > 0 || notifications.length > 0) && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg animate-pulse" />}
             </button>
             <Link to="/profile" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-all">
               <div className="text-right flex flex-col">
@@ -169,21 +226,69 @@ function Lobby() {
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setShowRequestsSidebar(false)} />
             <aside className="fixed right-0 top-0 bottom-0 w-80 bg-dark-surface/95 backdrop-blur-2xl border-l border-dark-border z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
               <div className="p-6 border-b border-dark-border flex items-center justify-between">
-                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2"><span className="text-green-400">🛎️</span> Friend Requests</h2>
+                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2"><span className="text-green-400">🛎️</span> Notifications</h2>
                 <button onClick={() => setShowRequestsSidebar(false)} className="w-8 h-8 rounded-full bg-dark-bg/50 hover:bg-error/20 hover:text-error flex items-center justify-center transition-colors cursor-pointer">✕</button>
               </div>
               <div className="flex-1 overflow-y-auto p-5 space-y-3">
-                {pendingRequests.length > 0 ? pendingRequests.map(req => (
-                    <div key={req.request_id} className="p-4 bg-dark-bg/50 border border-dark-border rounded-xl shadow-lg">
-                      <div className="flex items-center gap-3 mb-3">
-                         <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center overflow-hidden shrink-0">
-                           {req.from_user_avatar ? <img src={getAvatarUrl(req.from_user_avatar)} className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-accent">{req.from_user[0]}</span>}
-                         </div>
-                         <div><p className="text-sm font-bold text-text-primary">{req.from_user}</p><p className="text-xs text-text-muted leading-tight">wants to be your friend</p></div>
+
+                {/* Unread Messages Section */}
+                {unreadLoading ? (
+                  <div className="py-6 text-center">
+                    <div className="w-6 h-6 border-2 border-green-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs text-white/40 mt-2">Loading messages...</p>
+                  </div>
+                ) : unreadConvos.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 px-1">Unread Messages</p>
+                    {unreadConvos.map(conv => (
+                      <Link
+                        key={conv['conversation id']}
+                        to={`/chat/${conv.sender}`}
+                        onClick={() => setShowRequestsSidebar(false)}
+                        className="p-3 bg-green-400/5 border border-green-400/20 rounded-xl flex items-center gap-3 hover:bg-green-400/10 hover:border-green-400/40 transition-all group"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-green-400/10 border border-green-400/30 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-green-400">{conv.sender[0].toUpperCase()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-white truncate group-hover:text-green-400 transition-colors">{conv.sender}</p>
+                          <p className="text-[10px] text-white/50">{conv.unread_messages} unread message{conv.unread_messages > 1 ? 's' : ''}</p>
+                        </div>
+                        <span className="w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold text-white flex items-center justify-center shrink-0">
+                          {conv.unread_messages}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {/* Friend Requests */}
+                {pendingRequests.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 px-1">Friend Requests</p>
+                    {pendingRequests.map(req => (
+                      <div key={req.request_id} className="p-4 bg-dark-bg/50 border border-dark-border rounded-xl shadow-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                           <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/50 flex items-center justify-center overflow-hidden shrink-0">
+                             {req.from_user_avatar ? <img src={getAvatarUrl(req.from_user_avatar)} className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-accent">{req.from_user[0]}</span>}
+                           </div>
+                           <div><p className="text-sm font-bold text-text-primary">{req.from_user}</p><p className="text-xs text-text-muted leading-tight">wants to be your friend</p></div>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                           <button onClick={() => acceptRequest(req.request_id)} className="flex-1 py-1.5 text-xs font-semibold bg-green-500/10 border border-green-500/30 text-green-500 hover:bg-green-500 hover:text-white rounded-lg transition-all cursor-pointer">Accept</button>
+                           <button onClick={() => rejectRequest(req.request_id)} className="flex-1 py-1.5 text-xs font-semibold bg-error/10 border border-error/30 text-error hover:bg-error hover:text-white rounded-lg transition-all cursor-pointer">Reject</button>
+                        </div>
                       </div>
-                      <Link to={`/user/${req.from_user}`} onClick={() => setShowRequestsSidebar(false)} className="block w-full py-2 text-center text-xs font-semibold bg-green-400/10 border border-green-400/30 text-green-400 hover:bg-green-400 hover:text-white rounded-lg transition-all">View Profile to Respond</Link>
-                    </div>
-                )) : <div className="py-12 text-center space-y-3 text-text-muted"><p className="text-3xl">📭</p><p className="text-sm">No pending requests.</p></div>}
+                    ))}
+                  </div>
+                )}
+
+                {(pendingRequests.length === 0 && unreadConvos.length === 0) && (
+                  <div className="py-12 text-center space-y-3 text-text-muted">
+                    <p className="text-3xl">📭</p>
+                    <p className="text-sm">No new notifications.</p>
+                  </div>
+                )}
               </div>
             </aside>
           </>
@@ -230,7 +335,7 @@ function Lobby() {
                 <span className="text-4xl drop-shadow-lg">🔒</span>
                 <div>
                   <h3 className="text-xl font-black text-white tracking-wider">PRIVATE ROOM</h3>
-                  <p className="text-violet-200/60 text-[10px] mt-0.5 font-medium">Create or join with code</p>
+                  <p className="text-violet-200/60 text-[10px] mt-0.5 font-medium">Create match with friends</p>
                 </div>
               </div>
             </button>

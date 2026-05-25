@@ -19,6 +19,7 @@ from . import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns  # 1. ADD THIS IMPORT
 
 def home(request):
     data = {
@@ -36,5 +37,6 @@ urlpatterns = [
     path('', home),
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),
-    path('api/chat/', include('chat.urls'))
+    path('api/chat/', include('chat.urls')),
+    path('api/game/', include('game.urls'))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

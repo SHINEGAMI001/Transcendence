@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
 from django.http import JsonResponse
-from .models import FriendRequest
+from .models import FriendRequest, Conversation, Message
 from datetime import timedelta
 from django.utils import timezone
 
@@ -203,7 +203,7 @@ def advanced_search(request):
         if level_gt:
                users = users.filter(level__gt=level_gt)
         
-                # less than
+                # less thanPlease enter the correct username and password for a staff account. Note that both fields may be case-sensitive.
         level_lt = request.GET.get('level_lt')
         if level_lt:
                users= users.filter(level__lt=level_lt)
@@ -283,7 +283,7 @@ def pub_profile(request, username):
                                "avatar" : user.avatar.url,
                         }
                         request.user.last_seen = timezone.now()
-                        return Response(response, status=201)
+                        return Response(response, status=200)
                 else:
                      response = {"error message" : "user doesnt exist"}
                      return Response(response, status=401)
@@ -314,13 +314,28 @@ def send_request(request):
         if FriendRequest.objects.filter(from_user=send_to, to_user=request.user, status='pending').exists():
                return Response({"error message" : "already have a friend request from this user"}, status=406)
 
-        FriendRequest.objects.create(
+        req = FriendRequest.objects.create(
                from_user = request.user,
                to_user = send_to,
         )
 
         request.user.last_seen = timezone.now()
         request.user.save()
+
+        # Send notification to the other user
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+               f"notification_{send_to.id}", {
+                      "type" : "request_notify",
+                      "info" : "friend request",
+                      "request_id" : req.id,
+                      "sender" : request.user.username,
+                      "created_at" : str(timezone.now())
+               }
+        )
 
 
         return Response({"message" : "friend request sent succsesfuly"}, status=200)
@@ -409,6 +424,16 @@ def remove_friend(request):
 
         request.user.last_seen = timezone.now()
         request.user.save()
+
+        
+
+        # Remove associated conversations
+        conversations = Conversation.objects.filter(participants=request.user).filter(participants=userr)
+        if conversations.exists():
+               for conv in conversations:
+                      conv.delete()
+               
+
         return Response({"message" : "friend removed"}, status=200)
 
 
@@ -446,20 +471,40 @@ def list_friends(request):
 @api_view(['GET'])
 def check_status(request, username):
         if not request.user.is_authenticated:
-              return Response({"error message", "user not online"}, status=401)
+              return Response({"status": "none", "message": "user not authenticated"}, status=401)
 
         user_name = username
         if user_name == request.user.username:
-               return Response({"error message" : "cant check requests for self"}, status=406)
+               return Response({"status": "none", "message": "cannot check status for self"}, status=200)
+        
         User = get_user_model()
-        checked_user = User.objects.get(username=user_name)
-        reqs = FriendRequest.objects.all()
-        if reqs.filter(from_user=request.user,to_user=checked_user).exists():
-                req = reqs.get(from_user=request.user,to_user=checked_user)
-                return Response({"message" : "friend request status",
-                                 "status" : req.status}, status=200)
+        try:
+                checked_user = User.objects.get(username=user_name)
+        except User.DoesNotExist:
+                return Response({"status": "none", "message": "user not found"}, status=200)
+        
+        # Prioritize pending requests over old rejected/accepted ones
+        pending = FriendRequest.objects.filter(
+                from_user=request.user, to_user=checked_user, status='pending'
+        ).first()
+        if pending:
+                return Response({"status": "pending", "message": "friend request found"}, status=200)
+
+        # Also check reverse direction (they sent us a request)
+        pending_incoming = FriendRequest.objects.filter(
+                from_user=checked_user, to_user=request.user, status='pending'
+        ).first()
+        if pending_incoming:
+                return Response({"status": "pending", "direction": "incoming", "message": "incoming request found"}, status=200)
+
+        # No pending requests — return the latest outgoing status
+        latest = FriendRequest.objects.filter(
+                from_user=request.user, to_user=checked_user
+        ).order_by('-created_at').first()
+        if latest:
+                return Response({"status": latest.status, "message": "friend request found"}, status=200)
         else:
-               return Response({"error message" : "no pending request"}, status=406)
+               return Response({"status": "none", "message": "no friend request found"}, status=200)
 
 # Check friends online status
 @api_view(['GET'])
