@@ -158,6 +158,8 @@ def list_games(request):
             "max_players" : game.max_players,
             "created_by" : game.created_by.username,
             "created_at" : game.created_at,
+            "team_a_members" : [m.username for m in game.team_a.all()],
+            "team_b_members" : [m.username for m in game.team_b.all()],
         })
     
     return Response({

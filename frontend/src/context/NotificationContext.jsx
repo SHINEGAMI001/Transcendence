@@ -5,8 +5,8 @@ import { BACKEND_ORIGIN } from '../api';
 
 const NotificationContext = createContext({
   notifications: [],
-  clearNotification: () => {},
-  setNotifications: () => {}
+  clearNotification: () => { },
+  setNotifications: () => { }
 });
 
 export function NotificationProvider({ children }) {
@@ -23,7 +23,7 @@ export function NotificationProvider({ children }) {
       const wsProtocol = BACKEND_ORIGIN.startsWith('https') ? 'wss' : 'ws';
       const host = BACKEND_ORIGIN.replace(/^http(s)?:\/\//, '');
       const wsUrl = `${wsProtocol}://${host}/ws/notifications/`;
-      
+
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -91,8 +91,8 @@ export function NotificationProvider({ children }) {
               {popup.info === 'friend request' ? '👋' : '💬'}
             </div>
             <div className="flex-1 min-w-0">
-               <h4 className="text-sm font-bold text-green-400 truncate leading-tight">{popup.sender}</h4>
-               <p className="text-[10px] text-white/70 mt-0.5 truncate leading-tight">{popup.info || 'New message'}</p>
+              <h4 className="text-sm font-bold text-green-400 truncate leading-tight">{popup.sender}</h4>
+              <p className="text-[10px] text-white/70 mt-0.5 truncate leading-tight">{popup.info || 'New message'}</p>
             </div>
             <div className="text-[10px] text-white/30 group-hover:text-green-400/50 transition-colors">
               Open →
