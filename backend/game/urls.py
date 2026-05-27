@@ -14,4 +14,7 @@ urlpatterns = [
     path('choose_team/', views.choose_team),
     path('leave_queue/', views.leave_queue),
     path('list_queue/<int:queue_id>/', views.list_queue),
+    path('leave_game/', views.leave_game),
+    path('end_game/', views.end_game),
+    path('invite_status/<int:invite_id>/', views.invite_status)
 ]
