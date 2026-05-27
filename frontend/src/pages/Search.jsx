@@ -72,7 +72,11 @@ function Search() {
       setShowFilters(true)
     }
 
-    if (q.trim() || hasAnyFilter(searchParams)) {
+    const hasQuery = q.trim() !== ''
+    const hasPage = !!searchParams.get('page')
+    const hasFilters = hasAnyFilter(searchParams)
+
+    if (hasQuery || hasPage || hasFilters || hasSearched) {
       performSearch(searchParams)
     }
   }, [searchParams])

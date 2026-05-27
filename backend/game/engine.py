@@ -237,6 +237,7 @@ def tick(room: RoomState, dt: float) -> None:
     # ------------------------------------
 
     # 2. Normal physics (only runs if there is no winner)
+    room.timer += dt
     for player in player_list:
         update_player(player, dt)
 

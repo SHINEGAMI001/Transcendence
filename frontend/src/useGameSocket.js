@@ -3,11 +3,12 @@
  * Handles the WebSocket connection, input sending, and state management.
  */
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { BACKEND_ORIGIN } from './api';
 
 const getWsBaseUrl = () => {
-  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}`;
+  const protocol = BACKEND_ORIGIN.startsWith('https') ? 'wss:' : 'ws:';
+  const host = BACKEND_ORIGIN.replace(/^http(s)?:\/\//, '');
+  return `${protocol}//${host}`;
 };
 
 const WS_BASE = getWsBaseUrl();
@@ -30,6 +31,7 @@ export function useGameSocket(roomId) {
   const [status,    setStatus]    = useState('idle');   // idle | connecting | open | closed | error
   const [initData,  setInitData]  = useState(null);     // { player_id, team, arena }
   const [gameState, setGameState] = useState(null);     // latest state from server
+  const [chatMessages, setChatMessages] = useState([]);
   const [ping,      setPing]      = useState(null);
 
   const pingRef  = useRef(null);
@@ -46,7 +48,7 @@ export function useGameSocket(roomId) {
   }, []);
 
   // ── Connect ───────────────────────────────────────────────────────────────
-  const connect = useCallback(() => {
+  const connect = useCallback((teamName = null) => {
     if (wsRef.current) {
       wsRef.current.onclose = null;
       wsRef.current.close();
@@ -59,6 +61,12 @@ export function useGameSocket(roomId) {
     ws.onopen = () => {
       if (!mountedRef.current) return;
       setStatus('open');
+      
+      // Send join message if team is specified
+      if (teamName) {
+        ws.send(JSON.stringify({ type: 'join', team: teamName }));
+      }
+
       startInputLoop(ws);
       // start ping
       pingRef.current = setInterval(() => {
@@ -80,6 +88,8 @@ export function useGameSocket(roomId) {
         setGameState(msg.state);
       } else if (msg.type === 'pong') {
         setPing(Math.round(performance.now() - pingSent.current));
+      } else if (msg.type === 'chat') {
+        setChatMessages(prev => [...prev, msg]);
       }
     };
 
@@ -107,12 +117,25 @@ export function useGameSocket(roomId) {
       e.preventDefault();
       keysRef.current[key] = false;
     };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup',   onKeyUp);
+    window.addEventListener('keydown', (e) => {
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+      onKeyDown(e);
+    });
+    window.addEventListener('keyup', (e) => {
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+      onKeyUp(e);
+    });
+
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup',   onKeyUp);
     };
+  }, []);
+
+  const sendMessage = useCallback((msg) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(msg));
+    }
   }, []);
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────
@@ -126,5 +149,5 @@ export function useGameSocket(roomId) {
     };
   }, []);
 
-  return { connect, status, initData, gameState, ping };
+  return { connect, status, initData, gameState, ping, sendMessage, chatMessages };
 }

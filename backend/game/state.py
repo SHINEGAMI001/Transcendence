@@ -52,6 +52,7 @@ class PlayerState:
     y: float
     team: str = "left"   # "left" or "right"
     radius: float = PLAYER_RADIUS
+    name: str = ""
 
     # Live input flags — written by consumer layer, read by engine each tick.
     up:    bool = False
@@ -67,6 +68,7 @@ class PlayerState:
     def to_dict(self) -> dict:
         return {
             "id": self.player_id,
+            "n":  self.name,
             "x":  round(self.x, 1),
             "y":  round(self.y, 1),
             "r":  self.radius,
@@ -182,6 +184,7 @@ class RoomState:
     last_tick_time: float = field(default_factory=time.monotonic, repr=False)
     running:        bool  = False
     winner:         Optional[str] = None   # "left" | "right" | None
+    timer:          float = 0.0
 
     # Debug / monitoring
     stats: TickStats = field(default_factory=TickStats, repr=False)
@@ -191,11 +194,16 @@ class RoomState:
     _consumers: Dict[str, 'GameConsumer'] = field(default_factory=dict, repr=False)
 
     def to_dict(self) -> dict:
+        # Format timer to MM:SS
+        tm_sec = int(self.timer)
+        timer_str = f"{tm_sec // 60:02d}:{tm_sec % 60:02d}"
+
         return {
             "players": {pid: p.to_dict() for pid, p in self.players.items()},
             "ball":    self.ball.to_dict(),
             "score":   self.score.to_dict(),
             "winner":  self.winner,
+            "timer":   timer_str,
         }
 
     def add_player(self, player_id: str, user, team: str) -> PlayerState:
@@ -225,7 +233,7 @@ class RoomState:
         #     team = "left" if slot % 2 == 0 else "right"
         #     x = ARENA_WIDTH * 0.30 if team == "left" else ARENA_WIDTH * 0.70
         #     y = ARENA_HEIGHT * 0.3 + (slot - 2) * 60
-        p = PlayerState(player_id=player_id, x=x, y=y, team=team)
+        p = PlayerState(player_id=player_id, x=x, y=y, team=team_name, name=user.username)
         self.players[player_id] = p
         return p
 
