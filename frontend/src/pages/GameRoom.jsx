@@ -72,8 +72,23 @@ const GameRoom = () => {
         <div style={styles.container}>
             {/* Quit button — door icon top-left */}
             <button
-                onClick={() => {
+                onClick={async () => {
                     if (window.confirm("Are you sure you want to leave the match?")) {
+                        // If we have a stored queueId, leave it as well
+                        const storedPublic = sessionStorage.getItem('public_queue_id');
+                        const storedPrivate = sessionStorage.getItem('private_queue_id');
+                        const qId = storedPublic || storedPrivate;
+                        
+                        if (qId) {
+                            try {
+                                await api.post('api/game/leave_queue/', { queue_id: Number(qId) });
+                            } catch (err) {
+                                console.error('Failed to leave queue on quit:', err);
+                            } finally {
+                                sessionStorage.removeItem('public_queue_id');
+                                sessionStorage.removeItem('private_queue_id');
+                            }
+                        }
                         navigate('/lobby');
                     }
                 }}

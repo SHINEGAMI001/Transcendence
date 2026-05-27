@@ -69,8 +69,24 @@ export function NotificationProvider({ children }) {
     setNotifications(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handlePopupClick = (popup) => {
+  const handlePopupClick = async (popup) => {
     setPopups(prev => prev.filter(p => p.id !== popup.id));
+    
+    if (popup.info === 'game invite' && popup.invite_id) {
+      if (window.confirm(`${popup.sender} invited you to a game. Accept?`)) {
+        try {
+          await api.post('api/game/accept/', { invite_id: popup.invite_id })
+          // After accepting, we need to go to the private room page
+          // The invite.queue.id is used to join the correct queue
+          sessionStorage.setItem('private_queue_id', String(popup.queue_id))
+          navigate('/room/private')
+        } catch (err) {
+          alert('Failed to accept invite')
+        }
+      }
+      return
+    }
+
     if (popup.info === 'friend request' && popup.sender) {
       navigate('/lobby');
     } else if (popup.sender) {
@@ -88,7 +104,7 @@ export function NotificationProvider({ children }) {
             className="pointer-events-auto w-full max-w-xs bg-black/70 backdrop-blur-lg border border-green-400/30 rounded-xl shadow-[0_5px_20px_rgba(34,197,94,0.15)] px-4 py-3 animate-in slide-in-from-top-10 fade-in duration-500 ease-out flex items-center gap-3 cursor-pointer hover:bg-black/80 hover:border-green-400/50 hover:shadow-[0_5px_25px_rgba(34,197,94,0.25)] transition-all group"
           >
             <div className="text-lg group-hover:scale-110 transition-transform">
-              {popup.info === 'friend request' ? '👋' : '💬'}
+              {popup.info === 'friend request' ? '👋' : popup.info === 'game invite' ? '🎮' : '💬'}
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="text-sm font-bold text-green-400 truncate leading-tight">{popup.sender}</h4>

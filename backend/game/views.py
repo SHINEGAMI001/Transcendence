@@ -231,10 +231,12 @@ def send_invite(request):
 
     channel = get_channel_layer()
     async_to_sync(channel.group_send)(
-        f'notification{invite.invitee.username}',{
+        f'notification_{invite.invitee.id}',{
             'type' : 'invite_notify',
             'info' : "game invite",
             'sender' : request.user.username,
+            'invite_id': invite.id,
+            'queue_id': invite.queue.id,
             'created_at' : invite.created_at
         }
     )
@@ -437,6 +439,11 @@ def list_queue(request, queue_id):
 
     team_a_users = list(queue.team_a.values_list('username', flat=True))
     team_b_users = list(queue.team_b.values_list('username', flat=True))
+    
+    # Get all invites for this queue
+    invites = GameInvites.objects.filter(queue=queue)
+    invites_map = {inv.invitee.username: inv.status for inv in invites}
+
     queue_data = {
         "queue_id" : queue_id,
         "owner" : queue.owner.username,
@@ -444,6 +451,7 @@ def list_queue(request, queue_id):
         "team_b_users" : team_b_users,
         "team_a_count" : len(team_a_users),
         "team_b_count" : len(team_b_users),
+        "invites": invites_map
     }
     return Response({"message" : "queue details",
                      "details" : queue_data}, status=200)
