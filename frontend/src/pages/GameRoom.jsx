@@ -34,6 +34,15 @@ const GameRoom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatMessages]);
 
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, []);
+
     const handleChatSubmit = (e) => {
         e.preventDefault();
         if (chatInput.trim()) {
@@ -63,7 +72,11 @@ const GameRoom = () => {
         <div style={styles.container}>
             {/* Quit button — door icon top-left */}
             <button
-                onClick={() => navigate('/lobby')}
+                onClick={() => {
+                    if (window.confirm("Are you sure you want to leave the match?")) {
+                        navigate('/lobby');
+                    }
+                }}
                 style={styles.quitBtn}
                 title="Leave match"
             >

@@ -34,6 +34,15 @@ function CreatePublicRoom() {
     }
   }, [isLoggedIn])
 
+  useEffect(() => {
+     const handleBeforeUnload = (e) => {
+         e.preventDefault();
+         e.returnValue = '';
+     };
+     window.addEventListener('beforeunload', handleBeforeUnload);
+     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const handleSlotClick = (team, index) => {
      if (!user) return;
      const isTargetEmpty = team === 'red' ? !redTeam[index] : !blueTeam[index];
@@ -103,7 +112,11 @@ function CreatePublicRoom() {
 
       <header className="h-28 border-b border-white/10 bg-black/40 backdrop-blur-md flex items-center relative z-20 px-8 gap-8">
         <button 
-          onClick={() => navigate('/room/public')}
+          onClick={() => {
+              if (window.confirm("Are you sure you want to leave the room creation?")) {
+                  navigate('/room/public');
+              }
+          }}
           className="w-10 h-10 shrink-0 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer group mr-4"
         >
           <span className="text-white/50 group-hover:text-green-400 transition-colors">←</span>
