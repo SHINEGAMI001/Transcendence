@@ -1,167 +1,182 @@
 /**
  * GameCanvas.jsx
- * Server-authoritative canvas renderer.
- * Draws arena, players, ball, goals, and field markings.
+ * Neon-futuristic server-authoritative canvas renderer.
+ * All field elements drawn with canvas API — no image assets.
  */
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-// ── Colors ────────────────────────────────────────────────────────────────────
-const C = {
-  bg:          '#0d0e18',
-  field:       '#0f1122',
-  fieldLine:   'rgba(255,255,255,0.06)',
-  goalLeft:    'rgba(108,99,255,0.18)',
-  goalRight:   'rgba(255,107,107,0.18)',
-  goalBorder:  'rgba(255,255,255,0.15)',
-  playerLeft:  '#6c63ff',
-  playerRight: '#ff6b6b',
-  playerMe:    '#ffffff',
-  ball:        '#ffd700',
-  ballShadow:  'rgba(255,215,0,0.35)',
-  wall:        '#1e2035',
-  wallStroke:  '#2a2d3e',
-  centerLine:  'rgba(255,255,255,0.08)',
+// ── Arena constants (must match backend) ─────────────────────────────────────
+const ARENA_W = 800;
+const ARENA_H = 500;
+const CORNER_R = 80;
+const GOAL_H = 150;
+const GOAL_TOP = (ARENA_H - GOAL_H) / 2;
+const GOAL_BOTTOM = GOAL_TOP + GOAL_H;
+const GOAL_DEPTH = 22;
+
+// ── Neon palette ─────────────────────────────────────────────────────────────
+const NEON = {
+  bg:         '#0a0a0f',
+  border:      'rgba(89, 0, 223, 1)',
+  line:       'rgba(89, 0, 223, 1)',
+  goalLeft:   '#0c0cfdff',
+  goalRight:  '#f60808ff',
+  playerLeft: '#3b82f6',
+  playerRight:'#ef4444',
+  ball:       'rgba(89, 0, 223, 1)',
+  ballGlow:   'rgba(89, 0, 223, 1)',
+  timerText:  'rgba(251, 255, 0, 1)',
 };
 
-const GOAL_H      = 150;
-const CORNER_R    = 80;
-const PLAYER_R    = 20;
-const BALL_R      = 12;
+// ── Draw functions ───────────────────────────────────────────────────────────
 
-function drawArena(ctx, W, H) {
-  // Background
-  ctx.fillStyle = C.bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // Field surface
-  ctx.fillStyle = C.field;
+function drawField(ctx, W, H) {
+  // Outer border (non-glowing, dim)
+  ctx.save();
+  ctx.strokeStyle = NEON.border;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.roundRect(0, 0, W, H, CORNER_R);
-  ctx.fill();
-
-  // ── Field lines ──
-  ctx.strokeStyle = C.fieldLine;
-  ctx.lineWidth = 1.5;
-
-  // Center circle
-  ctx.beginPath();
-  ctx.arc(W / 2, H / 2, 70, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.restore();
 
-  // Center dot
-  ctx.fillStyle = C.fieldLine;
-  ctx.beginPath();
-  ctx.arc(W / 2, H / 2, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Center vertical line
+  // Center line
+  ctx.save();
+  ctx.strokeStyle = NEON.line;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
   ctx.beginPath();
   ctx.moveTo(W / 2, 0);
   ctx.lineTo(W / 2, H);
-  ctx.strokeStyle = C.centerLine;
+  ctx.stroke();
+
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(W / 2, H / 2, 60, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Center dot
+  ctx.fillStyle = NEON.line;
+  ctx.beginPath();
+  ctx.arc(W / 2, H / 2, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Penalty areas
+  const penaltyW = 70;
+  const penaltyH = 200;
+  const penaltyTop = (H - penaltyH) / 2;
+  ctx.save();
+  ctx.strokeStyle = NEON.line;
   ctx.lineWidth = 1.5;
+  // Left penalty area
+  ctx.strokeRect(0, penaltyTop, penaltyW, penaltyH);
+  // Right penalty area
+  ctx.strokeRect(W - penaltyW, penaltyTop, penaltyW, penaltyH);
+  ctx.restore();
+
+  // ── Goal lines (with glow) ──
+  // Left goal — blue glow
+  ctx.save();
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = NEON.goalLeft;
+  ctx.strokeStyle = NEON.goalLeft;
+  ctx.lineWidth = 42;
+  ctx.beginPath();
+  ctx.moveTo(0, GOAL_TOP);
+  ctx.lineTo(-GOAL_DEPTH, GOAL_TOP);
+  ctx.lineTo(-GOAL_DEPTH, GOAL_BOTTOM);
+  ctx.lineTo(0, GOAL_BOTTOM);
+  ctx.stroke();
+  
+  // Highlight goal area
+  ctx.fillStyle = 'rgba(16, 103, 243, 0.83)';
+  ctx.fillRect(-GOAL_DEPTH, GOAL_TOP, GOAL_DEPTH, GOAL_H);
+  ctx.restore();
+
+  // Right goal — red glow
+  ctx.save();
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = NEON.goalRight;
+  ctx.strokeStyle = NEON.goalRight;
+  ctx.lineWidth = 42;
+  ctx.beginPath();
+  ctx.moveTo(W, GOAL_TOP);
+  ctx.lineTo(W + GOAL_DEPTH, GOAL_TOP);
+  ctx.lineTo(W + GOAL_DEPTH, GOAL_BOTTOM);
+  ctx.lineTo(W, GOAL_BOTTOM);
   ctx.stroke();
 
-  // ── Goals ──
-  const goalTop    = (H - GOAL_H) / 2;
-  const goalBottom = goalTop + GOAL_H;
-  const goalDepth  = 30;
-
-  // Left goal fill
-  ctx.fillStyle = C.goalLeft;
-  ctx.beginPath();
-  ctx.rect(-goalDepth, goalTop, goalDepth, GOAL_H);
-  ctx.fill();
-  // Left goal border
-  ctx.strokeStyle = C.goalBorder;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, goalTop);
-  ctx.lineTo(-goalDepth, goalTop);
-  ctx.lineTo(-goalDepth, goalBottom);
-  ctx.lineTo(0, goalBottom);
-  ctx.stroke();
-
-  // Right goal fill
-  ctx.fillStyle = C.goalRight;
-  ctx.beginPath();
-  ctx.rect(W, goalTop, goalDepth, GOAL_H);
-  ctx.fill();
-  // Right goal border
-  ctx.strokeStyle = C.goalBorder;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(W, goalTop);
-  ctx.lineTo(W + goalDepth, goalTop);
-  ctx.lineTo(W + goalDepth, goalBottom);
-  ctx.lineTo(W, goalBottom);
-  ctx.stroke();
-
-  // ── Arena border ──
-  ctx.strokeStyle = C.wallStroke;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, W, H, CORNER_R);
-  ctx.stroke();
+  // Highlight goal area
+  ctx.fillStyle = 'rgba(239, 68, 68, 0.05)';
+  ctx.fillRect(W, GOAL_TOP, GOAL_DEPTH, GOAL_H);
+  ctx.restore();
 }
 
 function drawPlayer(ctx, p, myId) {
+  const r = p.r || 20;
   const isMe = p.id === myId;
-  const color = p.t === 'left' ? C.playerLeft : C.playerRight;
+  const isLeft = p.t === 'left';
+  const color = isLeft ? NEON.playerLeft : NEON.playerRight;
 
-  // Shadow / glow
+  // Glow
   ctx.save();
-  ctx.shadowBlur  = isMe ? 24 : 14;
+  ctx.shadowBlur = isMe ? 28 : 16;
   ctx.shadowColor = color;
 
-  // Body
+  // Body circle
   ctx.beginPath();
-  ctx.arc(p.x, p.y, p.r || PLAYER_R, 0, Math.PI * 2);
-
-  // Gradient fill
-  const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 2, p.x, p.y, p.r || PLAYER_R);
-  grad.addColorStop(0, isMe ? '#ffffff' : lighten(color, 0.3));
+  ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+  const grad = ctx.createRadialGradient(p.x - r * 0.3, p.y - r * 0.3, 1, p.x, p.y, r);
+  grad.addColorStop(0, isMe ? '#ffffff' : lighten(color, 0.35));
   grad.addColorStop(1, color);
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // Border
-  ctx.strokeStyle = isMe ? '#ffffff' : 'rgba(255,255,255,0.3)';
+  // Rim
+  ctx.strokeStyle = isMe ? 'rgba(255,255,255,0.9)' : `${color}aa`;
   ctx.lineWidth = isMe ? 2.5 : 1.5;
   ctx.stroke();
   ctx.restore();
 
-  // "ME" label
-  if (isMe) {
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = 'bold 9px Inter, sans-serif';
+  // Player name below
+  const name = p.n || '';
+  if (name) {
+    ctx.save();
+    ctx.font = 'bold 9px "Inter", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('YOU', p.x, p.y);
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = isMe ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.55)';
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = color;
+    ctx.fillText(name, p.x, p.y + r + 4);
+    ctx.restore();
   }
 }
 
 function drawBall(ctx, ball) {
-  const r = ball.r || BALL_R;
+  const r = ball.r || 12;
 
-  // Outer glow
   ctx.save();
-  ctx.shadowBlur  = 20;
-  ctx.shadowColor = C.ballShadow;
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = NEON.ballGlow;
 
-  // Ball body
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, r, 0, Math.PI * 2);
-  const grad = ctx.createRadialGradient(ball.x - 3, ball.y - 3, 1, ball.x, ball.y, r);
-  grad.addColorStop(0, '#fffacd');
-  grad.addColorStop(1, '#e6b800');
-  ctx.fillStyle = grad;
+  ctx.fillStyle = NEON.ball;
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(255,200,0,0.5)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
+}
+
+function drawWaiting(ctx, W, H) {
+  ctx.textAlign = 'center';
+  ctx.font = '16px "Courier New", monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText('Connecting to server…', W / 2, H / 2);
 }
 
 function lighten(hex, amount) {
@@ -172,6 +187,8 @@ function lighten(hex, amount) {
   return `rgb(${r},${g},${b})`;
 }
 
+// ── Component ────────────────────────────────────────────────────────────────
+
 export default function GameCanvas({ gameState, initData, width, height }) {
   const canvasRef = useRef(null);
 
@@ -181,9 +198,12 @@ export default function GameCanvas({ gameState, initData, width, height }) {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, width, height);
 
-    drawArena(ctx, width, height);
+    if (!gameState) {
+      drawWaiting(ctx, width, height);
+      return;
+    }
 
-    if (!gameState) return;
+    drawField(ctx, width, height);
 
     const myId = initData?.player_id ?? null;
 
@@ -202,7 +222,11 @@ export default function GameCanvas({ gameState, initData, width, height }) {
       ref={canvasRef}
       width={width}
       height={height}
-      style={{ width, height }}
+      style={{
+        display: 'block',
+        background: NEON.bg,
+        borderRadius: '77px',
+      }}
     />
   );
 }

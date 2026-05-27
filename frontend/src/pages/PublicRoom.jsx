@@ -19,16 +19,58 @@ function PublicRoom() {
   const navigate = useNavigate()
   const { isLoggedIn } = useAuth()
   const [user, setUser] = useState(null)
+  const [rooms, setRooms] = useState([])
   const [selectedRoom, setSelectedRoom] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [joining, setJoining] = useState(false)
+
+  const fetchRooms = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('api/game/list/')
+      // The backend returns 200 with listed_games or 204 if empty
+      setRooms(res.data.listed_games || [])
+    } catch (error) {
+      if (error.response?.status === 204) {
+        setRooms([])
+      } else {
+        console.error('Failed to fetch rooms:', error)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (isLoggedIn) {
       api.get('api/profile/me').then(res => setUser(res.data)).catch(() => { })
+      fetchRooms()
     }
   }, [isLoggedIn])
 
-  // Mock party members
-  const partyMembers = user ? [user] : []
+  const handleJoin = async () => {
+    if (!selectedRoom || !user) return
+    
+    setJoining(true)
+    try {
+      // Logic: Join the team with fewer players, or team_a by default
+      const team = selectedRoom.team_a_count <= selectedRoom.team_b_count ? 'team_a' : 'team_b'
+      
+      const res = await api.post('api/game/join/', {
+        game_id: selectedRoom.id,
+        team: team
+      })
+
+      if (res.data.game_id) {
+        navigate(`/game/${res.data.game_id}`)
+      }
+    } catch (error) {
+      console.error('Join failed:', error)
+      alert(error.response?.data?.['error message'] || 'Failed to join game')
+    } finally {
+      setJoining(false)
+    }
+  }
 
   return (
     <div className="min-h-screen text-text-primary flex flex-col relative overflow-hidden">
@@ -75,39 +117,59 @@ function PublicRoom() {
                 <h3 className="text-2xl font-black text-white italic tracking-tighter">AVAILABLE ROOMS</h3>
                 <p className="text-xs text-white/40 font-medium">Select a room to see match details</p>
               </div>
-              <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-white/60 hover:bg-white/10 transition-colors">REFRESH LIST</button>
+              <button 
+                onClick={fetchRooms}
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-white/60 hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                {loading ? 'SCANNING...' : 'REFRESH LIST'}
+              </button>
             </div>
 
             <div className="grid gap-3">
-              {MOCK_ROOMS.map(room => (
-                <button
-                  key={room.id}
-                  onClick={() => setSelectedRoom(room)}
-                  className={`w-full text-left p-5 rounded-2xl border transition-all duration-300 flex items-center justify-between group ${selectedRoom?.id === room.id
-                      ? 'bg-green-400/10 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.15)] scale-[1.01]'
-                      : 'bg-black/40 border-white/5 hover:border-white/20 hover:bg-black/60'
-                    }`}
-                >
-                  <div className="flex items-center gap-5">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-colors ${selectedRoom?.id === room.id ? 'bg-green-400 text-black' : 'bg-white/5 text-white/40'}`}>
-                      ⚽
+              {rooms.length > 0 ? rooms.map(room => {
+                const currentPlayers = (room.team_a_count || 0) + (room.team_b_count || 0)
+                return (
+                  <button
+                    key={room.id}
+                    onClick={() => setSelectedRoom(room)}
+                    className={`w-full text-left p-5 rounded-2xl border transition-all duration-300 flex items-center justify-between group ${selectedRoom?.id === room.id
+                        ? 'bg-green-400/10 border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.15)] scale-[1.01]'
+                        : 'bg-black/40 border-white/5 hover:border-white/20 hover:bg-black/60'
+                      }`}
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-colors ${selectedRoom?.id === room.id ? 'bg-green-400 text-black' : 'bg-white/5 text-white/40'}`}>
+                        ⚽
+                      </div>
+                      <div>
+                        <h4 className={`font-bold transition-colors ${selectedRoom?.id === room.id ? 'text-green-400' : 'text-white'}`}>Room #{room.id.slice(0, 8)}</h4>
+                        <p className="text-xs text-white/40">Created by: {room.created_by}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className={`font-bold transition-colors ${selectedRoom?.id === room.id ? 'text-green-400' : 'text-white'}`}>Room #{room.id}</h4>
-                      <p className="text-xs text-white/40">Status: {room.players < room.maxPlayers ? 'Open' : 'Full'}</p>
+                    <div className="flex items-center gap-8 px-4">
+                      <div className="w-48 bg-white/5 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 ${currentPlayers === room.max_players ? 'bg-error' : 'bg-green-400'}`}
+                          style={{ width: `${(currentPlayers / room.max_players) * 100}%` }}
+                        />
+                      </div>
+                      <p className="text-sm font-black text-white w-12 text-right">{currentPlayers}/{room.max_players}</p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-8 px-4">
-                    <div className="w-48 bg-white/5 h-2 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 ${room.players === room.maxPlayers ? 'bg-error' : 'bg-green-400'}`}
-                        style={{ width: `${(room.players / room.maxPlayers) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-sm font-black text-white w-12 text-right">{room.players}/{room.maxPlayers}</p>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                )
+              }) : !loading && (
+                <div className="py-20 text-center space-y-4 opacity-20">
+                   <p className="text-6xl">🏟️</p>
+                   <p className="font-black italic uppercase tracking-tighter">No games found</p>
+                   <p className="text-xs font-medium">Be the first to create a public match!</p>
+                </div>
+              )}
+              
+              {loading && (
+                <div className="grid gap-3 animate-pulse">
+                   {[1,2,3].map(i => <div key={i} className="h-20 bg-white/5 rounded-2xl border border-white/5" />)}
+                </div>
+              )}
             </div>
           </div>
         </main>
@@ -120,7 +182,7 @@ function PublicRoom() {
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/grass.png')]" />
                 <span className="text-6xl drop-shadow-2xl z-10">⚽</span>
                 <div className="absolute bottom-4 left-6 right-6 z-10">
-                  <h3 className="text-xl font-black text-white drop-shadow-md tracking-tight italic">ROOM #{selectedRoom.id}</h3>
+                  <h3 className="text-xl font-black text-white drop-shadow-md tracking-tight italic">ROOM #{selectedRoom.id.slice(0, 8)}</h3>
                   <span className="text-[10px] uppercase font-bold text-green-400 tracking-widest">Active Match Session</span>
                 </div>
               </div>
@@ -131,10 +193,24 @@ function PublicRoom() {
                     <div>
                       <p className="text-[9px] font-black text-white/30 uppercase mb-1">Current Occupancy</p>
                       <p className="text-2xl font-black text-white tracking-tighter">
-                        {selectedRoom.players} / {selectedRoom.maxPlayers}
+                        {selectedRoom.team_a_count + selectedRoom.team_b_count} / {selectedRoom.max_players}
                       </p>
                     </div>
-                    <div className={`w-3 h-3 rounded-full ${selectedRoom.players < selectedRoom.maxPlayers ? 'bg-green-400 animate-pulse' : 'bg-error'}`} />
+                    <div className={`w-3 h-3 rounded-full ${selectedRoom.team_a_count + selectedRoom.team_b_count < selectedRoom.max_players ? 'bg-green-400 animate-pulse' : 'bg-error'}`} />
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-black/20 border border-white/5 space-y-4">
+                  <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Team Stats</h4>
+                  <div className="space-y-3">
+                     <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/40">Team Alpha</span>
+                        <span className="font-bold text-white">{selectedRoom.team_a_count} Players</span>
+                     </div>
+                     <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/40">Team Beta</span>
+                        <span className="font-bold text-white">{selectedRoom.team_b_count} Players</span>
+                     </div>
                   </div>
                 </div>
 
@@ -166,7 +242,7 @@ function PublicRoom() {
           <div className="h-8 w-px bg-white/10" />
           <div className="flex flex-col">
             <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Match Selection</span>
-            <span className="text-sm font-bold text-green-400">{selectedRoom ? `ROOM #${selectedRoom.id}` : 'NONE'}</span>
+            <span className="text-sm font-bold text-green-400">{selectedRoom ? `ROOM #${selectedRoom.id.slice(0, 8)}` : 'NONE'}</span>
           </div>
         </div>
 
@@ -175,13 +251,14 @@ function PublicRoom() {
             CREATE ROOM
           </button>
           <button
-            disabled={!selectedRoom || selectedRoom.players === selectedRoom.maxPlayers}
-            className={`px-12 py-4 rounded-xl font-black italic tracking-tighter text-lg transition-all duration-300 ${selectedRoom && selectedRoom.players < selectedRoom.maxPlayers
+            disabled={!selectedRoom || (selectedRoom.team_a_count + selectedRoom.team_b_count) === selectedRoom.max_players || joining}
+            onClick={handleJoin}
+            className={`px-12 py-4 rounded-xl font-black italic tracking-tighter text-lg transition-all duration-300 ${selectedRoom && (selectedRoom.team_a_count + selectedRoom.team_b_count) < selectedRoom.max_players
                 ? 'bg-green-400 text-black hover:scale-105 shadow-[0_0_40px_rgba(34,197,94,0.4)] active:scale-95 cursor-pointer'
                 : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
               }`}
           >
-            JOIN GAME
+            {joining ? 'JOINING...' : 'JOIN GAME'}
           </button>
         </div>
       </footer>
