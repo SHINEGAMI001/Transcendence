@@ -90,8 +90,21 @@ python manage.py migrate #runs sql commands to create that blueprint
     - [POST] localhost:8000/api/chat/markasseen/
 
 - Game endpoints:
-    - [POST] localhost:8000/api/game/create
-    - [POST] localhost:8000/api/game/join
+    - [POST] localhost:8000/api/game/create/
+    - [POST] localhost:8000/api/game/join/
+    - [GET] localhost:8000/api/game/list/
+
+- Game invites endpoints:
+    - [POST] localhost:8000/api/game/invite/
+    - [POST] localhost:8000/api/game/accept/
+    - [POST] localhost:8000/api/game/reject/
+    - [GET] localhost:8000/api/game/list_invites/
+    - [POST] localhost:8000/api/game/create_queue/
+    - [POST] localhost:8000/api/game/choose_team/
+    - [POST] localhost:8000/api/game/leave_queue/
+    - [GET] localhost:8000/api/game/list_queue/<int:queue_id>/
+
+
 
 ### Backend websocket connection
     - localhost:8000/ws/chat/<int:conversation_id>
