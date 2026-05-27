@@ -91,11 +91,25 @@ def add_player(request):
         return Response({"error message" : "user not online"}, status=401)
 
     game_id = request.data.get("game_id")
-    team = request.data.get("team")
+    queue_id = request.data.get("queue_id")
 
     game = Game.objects.filter(id=game_id).first()
     if not game:
         return Response({"error message" : "game doesnt exist"}, status=404)
+
+
+    queue = Queue.objects.filter(id=queue_id).first()  # ← MISSING
+    if not queue:
+        return Response({"error message" : "queue doesnt exist"}, status=404)
+    
+    in_team_a = queue.team_a.filter(id=request.user.id).exists()
+    in_team_b = queue.team_b.filter(id=request.user.id).exists()
+    
+    if not in_team_a and not in_team_b:
+        return Response({"error message" : "user not in queue"}, status=403)
+    
+    # Determine which team user chose in queue
+    team = "team_a" if in_team_a else "team_b"
 
     # Check current players count
     if game.team_a_count + game.team_b_count >= game.max_players:
@@ -168,7 +182,59 @@ def list_games(request):
         "listed_games" : games_data
     }, status=200)
 
+
+# Leave game endpoint
+@api_view(['POST'])
+def leave_game(request):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+    
+    game_id = request.data.get('game_id')
+    queue_id = request.data.get('queue_id')
+
+    if not game_id or not queue_id:
+        return Response({"error message" : "invalid data"}, status=400)
+    
+    queue = Queue.objects.filter(id=queue_id).first()
+    game = Game.objects.filter(id=game_id).first()
+    if not queue or not game:
+        return Response({"error message" : "user not in game"}, status=404)
+    
+    # Remove from game
+    game.team_a.remove(request.user)
+    game.team_b.remove(request.user)
+    game.team_a_count = game.team_a.count()
+    game.team_b_count = game.team_b.count()
+    game.save()
+
+    # Remove from queue
+    queue.team_a.remove(request.user)
+    queue.team_b.remove(request.user)
+
+    return Response({"message" : "user left the game",
+                     "user" : request.user.username}, status=200)
+
 # End game endpoint
+@api_view(['POST'])
+def end_game(request):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+
+    queue_id = request.data.get('queue_id')
+    game_id = request.data.get('game_id')
+
+    if not game_id or not queue_id:
+        return Response({"error message" : "invalid data"}, status=400)
+    
+    queue = Queue.objects.filter(id=queue_id).first()
+    game = Game.objects.filter(id=game_id).first()
+    if queue:
+        queue.delete()
+    if game:
+        game.delete()
+    
+    return Response({"message" : "game ended"}, status=200)
+    
 
 # ________________________________________________________________________________
 # Invites apis
@@ -231,10 +297,12 @@ def send_invite(request):
 
     channel = get_channel_layer()
     async_to_sync(channel.group_send)(
-        f'notification{invite.invitee.username}',{
+        f'notification_{invite.invitee.id}',{
             'type' : 'invite_notify',
             'info' : "game invite",
             'sender' : request.user.username,
+            'invite_id': invite.id,
+            'queue_id': invite.queue.id,
             'created_at' : invite.created_at
         }
     )
@@ -331,6 +399,22 @@ def list_invites(request):
                      "invites" : invites_data}, status=200)
 
 
+# Invite status for inviter
+@api_view(['GET'])
+def invite_status(request, invite_id):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+
+    invite = GameInvites.objects.filter(id=invite_id).first()
+    if not invite:
+        return Response({"error message" : "no invite found"}, status=404)
+    
+    return Response({"message" : "invite status",
+                     "status" : invite.status,
+                     "invite_id" : invite_id,
+                     "inviter" : invite.inviter.username,
+                     "invitee" : invite.invitee.username}, status=200)
+
 
 # ________________________________________________________________________________
 # Queue apis
@@ -342,11 +426,24 @@ def create_queue(request):
         return Response({"error message" : "user not online"}, status=401)
     
     queues = Queue.objects.filter(owner=request.user)
+    in_team_a = Game.objects.filter(team_a=request.user)
+    in_team_b = Game.objects.filter(team_b=request.user)
+
+    game_id = None
+    if in_team_a:
+        game_id = in_team_a.id
+    elif in_team_b:
+        game_id = in_team_b.id
+
     if queues.exists():
-        return Response({"error message" : "user already in queue"}, status=409)
+        return Response({"error message" : "user already in queue",
+                         "queue_id" : queues.first().id,
+                         "game_id" : game_id if game_id else None}, status=409)
 
     if Queue.objects.filter(team_a=request.user).exists() or Queue.objects.filter(team_b=request.user).exists():
-        return Response({"error message" : "user already in queue"}, status=409)
+        return Response({"error message" : "user already in queue",
+                         "queue_id" : queues.first().id,
+                         "game_id" : game_id if game_id else None}, status=409)
     
     queue = Queue.objects.create(
         owner = request.user
@@ -437,6 +534,11 @@ def list_queue(request, queue_id):
 
     team_a_users = list(queue.team_a.values_list('username', flat=True))
     team_b_users = list(queue.team_b.values_list('username', flat=True))
+    
+    # Get all invites for this queue
+    invites = GameInvites.objects.filter(queue=queue)
+    invites_map = {inv.invitee.username: inv.status for inv in invites}
+
     queue_data = {
         "queue_id" : queue_id,
         "owner" : queue.owner.username,
@@ -444,6 +546,7 @@ def list_queue(request, queue_id):
         "team_b_users" : team_b_users,
         "team_a_count" : len(team_a_users),
         "team_b_count" : len(team_b_users),
+        "invites": invites_map
     }
     return Response({"message" : "queue details",
                      "details" : queue_data}, status=200)
