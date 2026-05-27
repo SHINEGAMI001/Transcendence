@@ -139,7 +139,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             if room:
                 payload = json.dumps({
                     "type": "chat", 
-                    "sender": self.player_id, 
+                    "sender": self.user.username,
                     "text": text
                 })
                 # Broadcast the message to everyone in the room instantly
@@ -206,18 +206,18 @@ class GameConsumer(AsyncWebsocketConsumer):
                 users.xp += 100
                 users.level = (users.xp // 100) + 1
                 users.save()
-            for users in game.team_b:
+            for users in game.team_b.all():
                 users.losses += 1
                 users.xp += 10
                 users.level = (users.xp // 100) + 1
                 users.save()
         else:
-            for users in game.team_b:
+            for users in game.team_b.all():
                 users.wins += 1
                 users.xp += 100
                 users.level = (users.xp // 100) + 1
                 users.save()
-            for users in game.team_a:
+            for users in game.team_a.all():
                 users.losses += 1
                 users.xp += 10
                 users.level = (users.xp // 100) + 1

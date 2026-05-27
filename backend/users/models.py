@@ -59,4 +59,6 @@ class Message(models.Model):
     def __str__(self):
         return f" sender : {self.sender} -> conversation id : {self.conversation.id}"
 
+
+
     

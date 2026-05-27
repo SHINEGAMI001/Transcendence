@@ -184,6 +184,15 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "sender" : event['sender'],
             "created_at" : event['created_at']
         }))
+    
+    # Game invites handler
+    async def invite_notify(self, event):
+
+        await self.send(text_data=json.dumps({
+            'info' : event['info'],
+            'sender' : event['sender'],
+            'created_at' : event['created_at']
+        }))
 
 
 
