@@ -3,16 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { getAvatarUrl } from '../utils'
-import lobbyBg from '../assets/lobbybackground.png.jpg'
+import lobbyBg from '../assets/homebg.jpg'
 
-// Mock Data for Friends
-const MOCK_FRIENDS = [
-   { username: 'Striker99', avatar: null, isOnline: true },
-   { username: 'Goaly', avatar: null, isOnline: true },
-   { username: 'NeonRider', avatar: null, isOnline: true },
-   { username: 'WaveRunner', avatar: null, isOnline: true },
-   { username: 'UrbanLegend', avatar: null, isOnline: false },
-]
+
 
 function PrivateRoom() {
    const navigate = useNavigate()
@@ -20,13 +13,13 @@ function PrivateRoom() {
 
    const [user, setUser] = useState(null)
 
-   // Party state (max 6)
+   // Party state (max 10)
    const [party, setParty] = useState([])
-   const [friends, setFriends] = useState(MOCK_FRIENDS)
+   const [friends, setFriends] = useState([])
 
    // Team slots (null indicates empty)
-   const [redTeam, setRedTeam] = useState([null, null, null])
-   const [blueTeam, setBlueTeam] = useState([null, null, null])
+   const [redTeam, setRedTeam] = useState([null, null, null, null, null])
+   const [blueTeam, setBlueTeam] = useState([null, null, null, null, null])
 
    // Track if all party members are assigned to a team
    const isGameReady = React.useMemo(() => {
@@ -63,38 +56,11 @@ function PrivateRoom() {
    // --- Handlers ---
 
    function handleInvite(friend) {
-      if (party.length >= 6) return
+      if (party.length >= 10) return
       if (party.some(p => p.username === friend.username)) return
 
       const newMember = { ...friend };
       setParty(prev => [...prev, newMember])
-
-      // Mockup logic: Automatically assign invited friend to a random empty slot for UI interaction
-      setTimeout(() => {
-         let assigned = false;
-         setRedTeam(prevRed => {
-            const newRed = [...prevRed];
-            for (let i = 0; i < 3; i++) {
-               if (!newRed[i] && !assigned) {
-                  newRed[i] = newMember;
-                  assigned = true;
-               }
-            }
-            if (!assigned) {
-               setBlueTeam(prevBlue => {
-                  const newBlue = [...prevBlue];
-                  for (let j = 0; j < 3; j++) {
-                     if (!newBlue[j]) {
-                        newBlue[j] = newMember;
-                        break;
-                     }
-                  }
-                  return newBlue;
-               })
-            }
-            return newRed;
-         })
-      }, 500)
    }
 
    // Handle switching slots by clicking an empty slot
@@ -167,33 +133,12 @@ function PrivateRoom() {
                <h2 className="text-2xl font-black tracking-tight text-white italic">
                   PRIVATE <span className="text-violet-400">ARENA</span>
                </h2>
-               <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Party ({party.length}/6)</div>
+               <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Party ({party.length}/10)</div>
             </div>
 
-            {/* Party Member Avatars */}
+            {/* User Avatar */}
             <div className="flex items-center gap-4 py-2">
-               {party.map((m) => {
-                  if (m.username === user?.username) {
-                     return <UserAvatar key={m.username} member={m} isLarge={true} />
-                  }
-                  return null;
-               })}
-
-               <div className="w-px h-12 bg-white/10 mx-2" />
-
-               {party.map((m) => {
-                  if (m.username !== user?.username) {
-                     return <UserAvatar key={m.username} member={m} />
-                  }
-                  return null;
-               })}
-
-               {/* Empty Slots */}
-               {Array.from({ length: 6 - party.length }).map((_, i) => (
-                  <div key={`empty-${i}`} className="w-14 h-14 rounded-full border border-dashed border-white/20 flex items-center justify-center opacity-30">
-                     <span className="text-xl">+</span>
-                  </div>
-               ))}
+               {user && <UserAvatar member={user} isLarge={true} />}
             </div>
          </header>
 

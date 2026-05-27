@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { getAvatarUrl } from '../utils'
-import lobbyBg from '../assets/lobbybackground.png.jpg'
+import lobbyBg from '../assets/homebg.jpg'
 
 function CreatePublicRoom() {
   const navigate = useNavigate()
@@ -11,8 +11,8 @@ function CreatePublicRoom() {
   
   const [user, setUser] = useState(null)
   const [party, setParty] = useState([])
-  const [redTeam, setRedTeam] = useState([null, null, null])
-  const [blueTeam, setBlueTeam] = useState([null, null, null])
+  const [redTeam, setRedTeam] = useState([null, null, null, null, null])
+  const [blueTeam, setBlueTeam] = useState([null, null, null, null, null])
   const [creating, setCreating] = useState(false)
 
   const isGameReady = useMemo(() => {
@@ -29,7 +29,7 @@ function CreatePublicRoom() {
          setUser(me)
          setParty([{ ...me, isLeader: true }])
          // Auto-assign to red team by default
-         setRedTeam([me, null, null])
+         setRedTeam([me, null, null, null, null])
       }).catch(() => {})
     }
   }, [isLoggedIn])
@@ -124,15 +124,14 @@ function CreatePublicRoom() {
 
         <div className="flex flex-col shrink-0 mr-8">
             <h2 className="text-2xl font-black tracking-tight text-white italic">
-               PUBLIC <span className="text-green-400">ARENA</span>
+               PUBLIC <span className="text-violet-400">ARENA</span>
             </h2>
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Match Setup</div>
         </div>
 
+        {/* User Avatar */}
         <div className="flex items-center gap-4 py-2">
-            {party.map((m) => (
-                <UserAvatar key={m.username} member={m} isLarge={true} />
-            ))}
+            {user && <UserAvatar member={user} isLarge={true} />}
         </div>
       </header>
 

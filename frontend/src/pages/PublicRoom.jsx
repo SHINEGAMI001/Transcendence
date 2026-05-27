@@ -189,6 +189,7 @@ function PublicRoom() {
 
               <div className="p-8 space-y-8 flex-1">
                 <div className="grid grid-cols-1 gap-4">
+
                   <div className="p-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
                     <div>
                       <p className="text-[9px] font-black text-white/30 uppercase mb-1">Current Occupancy</p>
@@ -204,21 +205,24 @@ function PublicRoom() {
                   <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Team Stats</h4>
                   <div className="space-y-3">
                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-white/40">Team Alpha</span>
+                        <span className="text-white/40">Team Blue </span>
                         <span className="font-bold text-white">{selectedRoom.team_a_count} Players</span>
                      </div>
                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-white/40">Team Beta</span>
+                        <span className="text-white/40">Team Red </span>
                         <span className="font-bold text-white">{selectedRoom.team_b_count} Players</span>
                      </div>
                   </div>
                 </div>
 
                 <div className="p-6 rounded-2xl bg-black/20 border border-white/5 space-y-4">
-                  <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Server Settings</h4>
-                  <p className="text-xs text-white/60 leading-relaxed italic border-l-2 border-green-400/30 pl-4">
-                    Standard match rules apply. All players must be ready to begin the countdown once the room reaches minimum capacity.
-                  </p>
+                  <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Match Administrator</h4>
+                  <div className="flex items-center gap-4">
+                     <div>
+                        <p className="text-sm font-bold text-white tracking-tight">@{selectedRoom.created_by}</p>
+                        <p className="text-[10px] text-green-400 uppercase font-black tracking-widest">Room Creator</p>
+                     </div>
+                  </div>
                 </div>
               </div>
             </div>
