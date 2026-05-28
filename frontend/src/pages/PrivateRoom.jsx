@@ -42,6 +42,12 @@ function PrivateRoom() {
       try {
          const res = await api.get(`api/game/list_queue/${id}/`)
          const d = res.data.details
+         // Auto-redirect if game has been launched
+         if (d.status === 'launched' && d.game_id) {
+            sessionStorage.removeItem(STORAGE_KEY)
+            navigate(`/game/${d.game_id}`)
+            return true
+         }
          setTeamA(d.team_a_users || [])
          setTeamB(d.team_b_users || [])
          // Overwrite/Merge invites status from backend
@@ -53,7 +59,7 @@ function PrivateRoom() {
          sessionStorage.removeItem(STORAGE_KEY)
          return false
       }
-   }, [])
+   }, [navigate])
 
    const fetchFriends = useCallback(async () => {
       try {
@@ -70,8 +76,11 @@ function PrivateRoom() {
       }
    }, [])
 
+   const didInit = React.useRef(false)
+
    useEffect(() => {
-      if (!isLoggedIn) return
+      if (!isLoggedIn || didInit.current) return
+      didInit.current = true
 
       const init = async () => {
          setLoading(true)
@@ -190,7 +199,7 @@ function PrivateRoom() {
       const username = typeof member === 'string' ? member : member.username
       const avatar = typeof member === 'string' ? null : member.avatar
       const sizeClasses = isLarge ? 'w-20 h-20' : 'w-14 h-14';
-      
+
       return (
          <div className={`${sizeClasses} shrink-0 rounded-full border-2 ${username === user?.username ? 'border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'border-white/20'} overflow-hidden relative bg-black/50 group`}>
             {avatar ? (
@@ -269,15 +278,15 @@ function PrivateRoom() {
                            </div>
                            <button
                               onClick={() => handleInvite(friend.username)}
-                              disabled={isInQueue || status === 'pending' || !friend.isOnline}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                 isInQueue ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' : 
-                                 status === 'pending' ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30' :
-                                 friend.isOnline ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' :
-                                 'bg-transparent text-white/20 cursor-not-allowed'
-                              }`}
+                              disabled={isInQueue || status === 'pending' || status === 'accepted' || !friend.isOnline}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isInQueue ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' :
+                                    status === 'accepted' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                    status === 'pending' ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30' :
+                                       friend.isOnline ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' :
+                                          'bg-transparent text-white/20 cursor-not-allowed'
+                                 }`}
                            >
-                              {isInQueue ? 'READY' : status === 'pending' ? 'SENT' : 'INVITE'}
+                              {isInQueue ? 'READY' : status === 'accepted' ? 'ACCEPTED' : status === 'pending' ? 'PENDING' : 'INVITE'}
                            </button>
                         </div>
                      )
@@ -345,7 +354,7 @@ function PrivateRoom() {
                <button onClick={handleLeaveQueue} className="px-8 py-4 rounded-xl bg-red-500/20 text-red-400 border border-red-400/30 font-black italic tracking-tighter text-lg hover:bg-red-500/30 transition-all cursor-pointer">
                   LEAVE
                </button>
-               <button 
+               <button
                   disabled={!isGameReady || starting}
                   onClick={handleStartGame}
                   className={`px-16 py-4 rounded-xl font-black italic tracking-tighter text-xl transition-all duration-300 ${isGameReady ? 'bg-violet-600 text-white hover:scale-105 shadow-[0_0_40px_rgba(124,58,237,0.4)] active:scale-95 cursor-pointer' : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'}`}

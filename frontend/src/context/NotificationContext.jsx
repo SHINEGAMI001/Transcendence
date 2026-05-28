@@ -72,25 +72,27 @@ export function NotificationProvider({ children }) {
   const handlePopupClick = async (popup) => {
     setPopups(prev => prev.filter(p => p.id !== popup.id));
     
-    if (popup.info === 'game invite' && popup.invite_id) {
-      if (window.confirm(`${popup.sender} invited you to a game. Accept?`)) {
-        try {
-          await api.post('api/game/accept/', { invite_id: popup.invite_id })
-          // After accepting, we need to go to the private room page
-          // The invite.queue.id is used to join the correct queue
-          sessionStorage.setItem('private_queue_id', String(popup.queue_id))
-          navigate('/room/private')
-        } catch (err) {
-          alert('Failed to accept invite')
-        }
-      }
-      return
-    }
-
     if (popup.info === 'friend request' && popup.sender) {
       navigate('/lobby');
     } else if (popup.sender) {
       navigate(`/chat/${popup.sender}`);
+    }
+  };
+
+  const handleGameInviteResponse = async (e, popup, accept) => {
+    e.stopPropagation();
+    setPopups(prev => prev.filter(p => p.id !== popup.id));
+
+    try {
+       if (accept) {
+          await api.post('api/game/accept/', { invite_id: popup.invite_id })
+          sessionStorage.setItem('private_queue_id', String(popup.queue_id))
+          navigate('/room/private')
+       } else {
+          await api.post('api/game/reject/', { invite_id: popup.invite_id })
+       }
+    } catch (err) {
+       alert(`Failed to ${accept ? 'accept' : 'decline'} game invite`)
     }
   };
 
@@ -100,18 +102,22 @@ export function NotificationProvider({ children }) {
         {popups.map(popup => (
           <div
             key={popup.id}
-            onClick={() => handlePopupClick(popup)}
-            className="pointer-events-auto w-full max-w-xs bg-black/70 backdrop-blur-lg border border-green-400/30 rounded-xl shadow-[0_5px_20px_rgba(34,197,94,0.15)] px-4 py-3 animate-in slide-in-from-top-10 fade-in duration-500 ease-out flex items-center gap-3 cursor-pointer hover:bg-black/80 hover:border-green-400/50 hover:shadow-[0_5px_25px_rgba(34,197,94,0.25)] transition-all group"
+            onClick={() => popup.info !== 'game invite' && handlePopupClick(popup)}
+            className={`pointer-events-auto w-full max-w-sm ${popup.info === 'game invite' ? 'border-violet-500/30 shadow-[0_5px_20px_rgba(139,92,246,0.15)] bg-black/80 cursor-default' : 'bg-black/70 border-green-400/30 shadow-[0_5px_20px_rgba(34,197,94,0.15)] cursor-pointer hover:bg-black/80 hover:scale-[1.02]'} backdrop-blur-lg border rounded-xl px-4 py-3 animate-in slide-in-from-top-10 fade-in duration-500 ease-out flex flex-col gap-3 transition-all group`}
           >
-            <div className="text-lg group-hover:scale-110 transition-transform">
-              {popup.info === 'friend request' ? '👋' : popup.info === 'game invite' ? '🎮' : '💬'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-green-400 truncate leading-tight">{popup.sender}</h4>
-              <p className="text-[10px] text-white/70 mt-0.5 truncate leading-tight">{popup.info || 'New message'}</p>
-            </div>
-            <div className="text-[10px] text-white/30 group-hover:text-green-400/50 transition-colors">
-              Open →
+            <div className="flex items-center gap-3 w-full">
+               <div className="text-xl group-hover:scale-110 transition-transform">
+                 {popup.info === 'friend request' ? '👋' : popup.info === 'game invite' ? '🎮' : '💬'}
+               </div>
+               <div className="flex-1 min-w-0">
+                 <h4 className={`text-sm font-bold ${popup.info === 'game invite' ? 'text-violet-400' : 'text-green-400'} truncate leading-tight`}>{popup.sender}</h4>
+                 <p className="text-[11px] text-white/70 mt-0.5 truncate leading-tight">{popup.info || 'New message'}</p>
+               </div>
+            {popup.info !== 'game invite' && (
+                 <div className="text-[10px] text-white/30 group-hover:text-green-400/50 transition-colors">
+                   Open →
+                 </div>
+               )}
             </div>
           </div>
         ))}

@@ -363,6 +363,7 @@ def send_invite(request):
             'invite_id': invite.id,
             'queue_id': invite.queue.id,
             'created_at' : str(invite.created_at)
+            'created_at' : str(invite.created_at)
         }
     )
 
@@ -500,8 +501,8 @@ def create_queue(request):
         return Response({"error message" : "user not online"}, status=401)
     
     queues = Queue.objects.filter(owner=request.user)
-    in_team_a = Game.objects.filter(team_a=request.user).first()
-    in_team_b = Game.objects.filter(team_b=request.user).first()
+    in_team_a = Game.objects.filter(team_a=request.user).first().first()
+    in_team_b = Game.objects.filter(team_b=request.user).first().first()
 
     game_id = None
     if in_team_a:
@@ -644,11 +645,17 @@ def list_queue(request, queue_id):
     queue_data = {
         "queue_id" : queue_id,
         "owner" : queue.owner.username,
+        "status" : queue.status,
         "team_a_users" : team_a_users,
         "team_b_users" : team_b_users,
         "team_a_count" : len(team_a_users),
         "team_b_count" : len(team_b_users),
     }
+
+    if queue.status == 'launched':
+        game = Game.objects.filter(created_by=queue.owner).order_by('-created_at').first()
+        if game:
+            queue_data["game_id"] = str(game.id)
+
     return Response({"message" : "queue details",
                      "details" : queue_data}, status=200)
-    
