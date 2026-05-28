@@ -32,6 +32,8 @@ class Queue(models.Model):
         ('launched', 'Launched')
     ]
 
+    participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='participants')
+    
     team_a = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='team_a_queue')
     team_b = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='team_b_queue')
     
