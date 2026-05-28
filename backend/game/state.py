@@ -254,17 +254,46 @@ class RoomState:
     def player_count(self) -> int:
         return len(self.players)
 
-    def reset_round(self) -> None:
-        """Reset positions and ball after a goal."""
-        self.ball.reset()
-        slots = list(self.players.values())
-        if len(slots) > 0:
-            slots[0].x = ARENA_WIDTH * 0.20
-            slots[0].y = ARENA_HEIGHT / 2.0
-        if len(slots) > 1:
-            slots[1].x = ARENA_WIDTH * 0.80
-            slots[1].y = ARENA_HEIGHT / 2.0
 
+    ### BUGG IN THIS RESET VERSION ###
+
+    # def reset_round(self) -> None:
+    #     """Reset positions and ball after a goal."""
+    #     self.ball.reset()
+    #     slots = list(self.players.values())
+    #     if len(slots) > 0:
+    #         slots[0].x = ARENA_WIDTH * 0.20
+    #         slots[0].y = ARENA_HEIGHT / 2.0
+    #     if len(slots) > 1:
+    #         slots[1].x = ARENA_WIDTH * 0.80
+    #         slots[1].y = ARENA_HEIGHT / 2.0
+
+    #
+    ### REPLACED WITH THIS
+    #
+    def reset_round(self) -> None:
+        self.ball.reset()
+
+        left_players = [p for p in self.players.values() if p.team == "left"]
+        right_players = [p for p in self.players.values() if p.team == "right"]
+
+        # Left team respawn
+        for i, player in enumerate(left_players):
+            player.x = ARENA_WIDTH * 0.20
+
+            if len(left_players) == 1:
+                player.y = ARENA_HEIGHT / 2.0
+            else:
+                player.y = ARENA_HEIGHT * 0.3 + i * 60
+
+        # Right team respawn
+        for i, player in enumerate(right_players):
+            player.x = ARENA_WIDTH * 0.80
+
+            if len(right_players) == 1:
+                player.y = ARENA_HEIGHT / 2.0
+            else:
+                player.y = ARENA_HEIGHT * 0.3 + i * 60
 
 # ─── Global room registry ─────────────────────────────────────────────────────
 # asyncio is cooperative/single-threaded: plain dict reads between awaits are
