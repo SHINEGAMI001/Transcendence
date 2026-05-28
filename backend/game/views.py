@@ -303,7 +303,7 @@ def send_invite(request):
             'sender' : request.user.username,
             'invite_id': invite.id,
             'queue_id': invite.queue.id,
-            'created_at' : invite.created_at
+            'created_at' : str(invite.created_at)
         }
     )
 
@@ -426,8 +426,8 @@ def create_queue(request):
         return Response({"error message" : "user not online"}, status=401)
     
     queues = Queue.objects.filter(owner=request.user)
-    in_team_a = Game.objects.filter(team_a=request.user)
-    in_team_b = Game.objects.filter(team_b=request.user)
+    in_team_a = Game.objects.filter(team_a=request.user).first()
+    in_team_b = Game.objects.filter(team_b=request.user).first()
 
     game_id = None
     if in_team_a:
@@ -535,19 +535,21 @@ def list_queue(request, queue_id):
     team_a_users = list(queue.team_a.values_list('username', flat=True))
     team_b_users = list(queue.team_b.values_list('username', flat=True))
     
-    # Get all invites for this queue
-    invites = GameInvites.objects.filter(queue=queue)
-    invites_map = {inv.invitee.username: inv.status for inv in invites}
 
     queue_data = {
         "queue_id" : queue_id,
         "owner" : queue.owner.username,
+        "status" : queue.status,
         "team_a_users" : team_a_users,
         "team_b_users" : team_b_users,
         "team_a_count" : len(team_a_users),
         "team_b_count" : len(team_b_users),
-        "invites": invites_map
     }
+
+    if queue.status == 'launched':
+        game = Game.objects.filter(created_by=queue.owner).order_by('-created_at').first()
+        if game:
+            queue_data["game_id"] = str(game.id)
+
     return Response({"message" : "queue details",
                      "details" : queue_data}, status=200)
-    

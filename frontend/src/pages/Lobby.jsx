@@ -83,6 +83,7 @@ function Lobby() {
   const [searchQuery, setSearchQuery] = useState('')
   const [friends, setFriends] = useState([])
   const [pendingRequests, setPendingRequests] = useState([])
+  const [pendingInvites, setPendingInvites] = useState([])
   const [showRequestsSidebar, setShowRequestsSidebar] = useState(false)
   const [unreadConvos, setUnreadConvos] = useState([])
   const [unreadLoading, setUnreadLoading] = useState(false)
@@ -97,12 +98,14 @@ function Lobby() {
     
     setUnreadLoading(true)
     try {
-      const [chatRes, reqRes] = await Promise.all([
+      const [chatRes, reqRes, invRes] = await Promise.all([
         api.get('api/chat/getunread/').catch(() => ({ data: [] })),
-        api.get('api/users/friends/friend_requests').catch(() => ({ data: { 'pending requests': [] } }))
+        api.get('api/users/friends/friend_requests').catch(() => ({ data: { 'pending requests': [] } })),
+        api.get('api/game/list_invites/').catch(() => ({ data: { invites: [] } }))
       ])
       setUnreadConvos(chatRes.data || [])
       setPendingRequests(reqRes.data['pending requests'] || [])
+      setPendingInvites(invRes.data.invites || [])
     } catch (e) {
       console.error('Failed to fetch notifications', e)
     } finally {
@@ -130,11 +133,34 @@ function Lobby() {
     }
   }
 
+  const acceptGameInvite = async (inviteId, fallbackQueueId) => {
+    try {
+      const res = await api.post('api/game/accept/', { invite_id: inviteId })
+      const actualQueueId = res.data.queue_id || fallbackQueueId;
+      setPendingInvites(prev => prev.filter(inv => inv.invite_id !== inviteId))
+      sessionStorage.setItem('private_queue_id', String(actualQueueId))
+      navigate('/room/private')
+    } catch (error) {
+      console.error('Failed to accept game invite:', error)
+      alert('Failed to accept game invite: ' + (error.response?.data?.['error message'] || 'Unknown error'))
+    }
+  }
+
+  const rejectGameInvite = async (inviteId) => {
+    try {
+      await api.post('api/game/reject/', { invite_id: inviteId })
+      setPendingInvites(prev => prev.filter(inv => inv.invite_id !== inviteId))
+    } catch (error) {
+      console.error('Failed to reject game invite:', error)
+    }
+  }
+
   useEffect(() => {
     if (isLoggedIn) {
       api.get('api/profile/me').then(res => setUser(res.data)).catch(() => {})
       api.get('api/users/friends/list_friends').then(res => setFriends(res.data.friends || [])).catch(() => {})
       api.get('api/users/friends/friend_requests').then(res => setPendingRequests(res.data['pending requests'] || [])).catch(() => {})
+      api.get('api/game/list_invites/').then(res => setPendingInvites(res.data.invites || [])).catch(() => {})
       api.get('api/chat/getunread/').then(res => setUnreadConvos(res.data || [])).catch(() => {})
     }
   }, [isLoggedIn])
@@ -207,7 +233,7 @@ function Lobby() {
           <div className="flex items-center gap-6">
             <button onClick={openNotificationsSidebar} className="relative p-2 text-xl hover:scale-110 transition-transform hover:text-green-400 cursor-pointer">
                🔔
-               {(pendingRequests.length > 0 || unreadConvos.length > 0 || notifications.length > 0) && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg animate-pulse" />}
+               {(pendingRequests.length > 0 || unreadConvos.length > 0 || pendingInvites.length > 0 || notifications.length > 0) && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg animate-pulse" />}
             </button>
             <Link to="/profile" className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-all">
               <div className="text-right flex flex-col">
@@ -283,7 +309,29 @@ function Lobby() {
                   </div>
                 )}
 
-                {(pendingRequests.length === 0 && unreadConvos.length === 0) && (
+                {/* Game Invites */}
+                {pendingInvites.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 px-1">Game Invites</p>
+                    {pendingInvites.map(inv => (
+                      <div key={inv.invite_id} className="p-4 bg-dark-bg/50 border border-violet-500/30 rounded-xl shadow-lg relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-transparent pointer-events-none" />
+                        <div className="relative z-10 flex items-center gap-3 mb-3">
+                           <div className="w-10 h-10 rounded-full bg-violet-500/20 border border-violet-500/50 flex items-center justify-center overflow-hidden shrink-0">
+                             <span className="text-xl">🎮</span>
+                           </div>
+                           <div><p className="text-sm font-bold text-violet-100">{inv.sender}</p><p className="text-xs text-violet-300/70 leading-tight">invited you to a match</p></div>
+                        </div>
+                        <div className="relative z-10 flex gap-2 mt-2">
+                           <button onClick={() => acceptGameInvite(inv.invite_id, inv.queue_id)} className="flex-1 py-1.5 text-xs font-semibold bg-violet-500/20 border border-violet-500/40 text-violet-300 hover:bg-violet-500 hover:text-white rounded-lg transition-all cursor-pointer">Accept</button>
+                           <button onClick={() => rejectGameInvite(inv.invite_id)} className="flex-1 py-1.5 text-xs font-semibold bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white rounded-lg transition-all cursor-pointer">Decline</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {(pendingRequests.length === 0 && unreadConvos.length === 0 && pendingInvites.length === 0) && (
                   <div className="py-12 text-center space-y-3 text-text-muted">
                     <p className="text-3xl">📭</p>
                     <p className="text-sm">No new notifications.</p>
