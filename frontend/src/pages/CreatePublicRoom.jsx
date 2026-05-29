@@ -18,6 +18,8 @@ function CreatePublicRoom() {
    const [teamB, setTeamB] = useState([])
    const [creating, setCreating] = useState(false)
    const [loading, setLoading] = useState(true)
+   const [isJoinMode, setIsJoinMode] = useState(false)
+   const [joinGameId, setJoinGameId] = useState(null)
 
    const isGameReady = useMemo(() => {
       return teamA.length >= 1 || teamB.length >= 1;
@@ -36,14 +38,17 @@ function CreatePublicRoom() {
       return slots
    }, [teamB])
 
+   const isNavigatingToGame = React.useRef(false)
+
    // Fetch queue details from backend
-   const fetchQueue = useCallback(async (id) => {
+   const fetchQueue = useCallback(async (id, joinMode = isJoinMode) => {
       try {
          const res = await api.get(`api/game/list_queue/${id}/`)
          const d = res.data.details
-         // Auto-redirect if game has been launched
-         if (d.status === 'launched' && d.game_id) {
+         // Auto-redirect if game has been launched, but not in join mode
+         if (d.status === 'launched' && d.game_id && !joinMode) {
             sessionStorage.removeItem(STORAGE_KEY)
+            isNavigatingToGame.current = true
             navigate(`/game/${d.game_id}`)
             return true
          }
@@ -53,9 +58,13 @@ function CreatePublicRoom() {
       } catch {
          // Queue no longer exists
          sessionStorage.removeItem(STORAGE_KEY)
+         sessionStorage.removeItem('join_public_queue_id')
+         sessionStorage.removeItem('join_public_game_id')
+         alert('Queue is no longer available.')
+         navigate('/room/public')
          return false
       }
-   }, [navigate])
+   }, [navigate, isJoinMode])
 
    const didInit = React.useRef(false)
 
@@ -72,30 +81,29 @@ function CreatePublicRoom() {
             setUser(me)
 
             // Check if we have an existing queue in sessionStorage
+            const joinQueueId = sessionStorage.getItem('join_public_queue_id')
+            const joinGameIdStored = sessionStorage.getItem('join_public_game_id')
             const storedId = sessionStorage.getItem(STORAGE_KEY)
-            if (storedId) {
-               const ok = await fetchQueue(Number(storedId))
+
+            if (joinQueueId && joinGameIdStored) {
+               setIsJoinMode(true)
+               setJoinGameId(joinGameIdStored)
+               const ok = await fetchQueue(Number(joinQueueId), true)
+               if (ok) {
+                  setQueueId(Number(joinQueueId))
+               }
+            } else if (storedId) {
+               setIsJoinMode(false)
+               const ok = await fetchQueue(Number(storedId), false)
                if (ok) {
                   setQueueId(Number(storedId))
-                  setLoading(false)
-                  return
                }
-            }
-
-            // Create a new queue
-            const queueRes = await api.post('api/game/create_queue/')
-            const newId = queueRes.data.queue_id
-            setQueueId(newId)
-            sessionStorage.setItem(STORAGE_KEY, String(newId))
-            setTeamA([])
-            setTeamB([])
-         } catch (err) {
-            console.error('Init failed:', err)
-            const msg = err.response?.data?.['error message']
-            if (msg === 'user already in queue') {
-               alert('You are already in another queue. Leave it first.')
+            } else {
                navigate('/room/public')
             }
+         } catch (err) {
+            console.error('Init failed:', err)
+            navigate('/room/public')
          } finally {
             setLoading(false)
          }
@@ -111,8 +119,13 @@ function CreatePublicRoom() {
          e.returnValue = '';
       };
       window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-   }, []);
+      return () => {
+         window.removeEventListener('beforeunload', handleBeforeUnload);
+         if (queueId && !isNavigatingToGame.current) {
+            api.post('api/game/leave_queue/', { queue_id: queueId }).catch(() => {})
+         }
+      };
+   }, [queueId]);
 
    // Handle slot click — call choose_team API
    const handleSlotClick = async (team, index) => {
@@ -152,6 +165,7 @@ function CreatePublicRoom() {
          });
          if (res.data.game_id) {
             sessionStorage.removeItem(STORAGE_KEY)
+            isNavigatingToGame.current = true
             navigate(`/game/${res.data.game_id}`);
          }
       } catch (error) {
@@ -162,9 +176,34 @@ function CreatePublicRoom() {
       }
    }
 
+   const handleJoinGame = async () => {
+      if (!isGameReady || !user || !queueId) return;
+
+      setCreating(true);
+      try {
+         const team = teamA.includes(user.username) ? 'team_a' : 'team_b';
+         const res = await api.post('api/game/join/', {
+            game_id: joinGameId,
+            queue_id: queueId,
+            team: team
+         });
+         if (res.data.game_id) {
+            sessionStorage.removeItem('join_public_queue_id')
+            sessionStorage.removeItem('join_public_game_id')
+            isNavigatingToGame.current = true
+            navigate(`/game/${res.data.game_id}`);
+         }
+      } catch (error) {
+         console.error('Failed to join game:', error);
+         alert(error.response?.data?.['error message'] || 'Failed to join game');
+      } finally {
+         setCreating(false);
+      }
+   }
+
    // Leave queue and navigate away
    const handleLeaveQueue = async () => {
-      if (!window.confirm('Are you sure you want to leave the queue? The queue will be deleted.')) return
+      if (!window.confirm(`Are you sure you want to leave the queue? ${isJoinMode ? '' : 'The queue will be deleted.'}`)) return
       try {
          if (queueId) {
             await api.post('api/game/leave_queue/', { queue_id: queueId })
@@ -173,6 +212,8 @@ function CreatePublicRoom() {
          console.error('Leave queue failed:', err)
       }
       sessionStorage.removeItem(STORAGE_KEY)
+      sessionStorage.removeItem('join_public_queue_id')
+      sessionStorage.removeItem('join_public_game_id')
       navigate('/room/public')
    }
 
@@ -290,7 +331,7 @@ function CreatePublicRoom() {
             <div className="flex flex-col">
                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Match Status</span>
                <span className={`text-sm font-bold italic transition-colors duration-300 ${isGameReady ? 'text-green-400 font-black' : 'text-white/50'}`}>
-                  {isGameReady ? 'READY TO CREATE MATCH' : 'SELECT A TEAM TO PROCEED'}
+                  {isGameReady ? (isJoinMode ? 'READY TO JOIN MATCH' : 'READY TO CREATE MATCH') : 'SELECT A TEAM TO PROCEED'}
                </span>
             </div>
 
@@ -303,13 +344,13 @@ function CreatePublicRoom() {
                </button>
                <button
                   disabled={!isGameReady || creating}
-                  onClick={handleCreateGame}
+                  onClick={isJoinMode ? handleJoinGame : handleCreateGame}
                   className={`px-16 py-4 rounded-xl font-black italic tracking-tighter text-xl transition-all duration-300 ${isGameReady
                         ? 'bg-green-600 text-white hover:scale-105 shadow-[0_0_40px_rgba(34,197,94,0.4)] active:scale-95 cursor-pointer'
                         : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
                      }`}
                >
-                  {creating ? 'CREATING...' : 'CREATE ROOM'}
+                  {creating ? (isJoinMode ? 'JOINING...' : 'CREATING...') : (isJoinMode ? 'JOIN GAME' : 'CREATE ROOM')}
                </button>
             </div>
          </footer>

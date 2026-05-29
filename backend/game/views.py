@@ -75,6 +75,7 @@ def create_game(request):
         team_a_count = users_a.count(),
         team_b_count = users_b.count(),
         created_by=queue.owner,
+        queue=queue,
     )
 
     # Add users to teams
@@ -139,7 +140,9 @@ def add_player(request):
 
     if already_in_game:
         return Response(
-        {"error message": "user already in game"},
+        {"error message": "user already in game",
+         "game_id": str(game.id),
+         "queue_id": str(queue.id) if queue else None},
         status=409
     )
 
@@ -186,13 +189,41 @@ def list_games(request):
             "created_at" : game.created_at,
             "team_a_members" : [m.username for m in game.team_a.all()],
             "team_b_members" : [m.username for m in game.team_b.all()],
-        })
+            "queue_id" : game.queue.id,
+            "total_players" : game.queue.participants.count()})
     
     return Response({
         "message" : "all games",
         "games_count" : games_count,
         "listed_games" : games_data
     }, status=200)
+
+# Game details endpoint
+@api_view(['GET'])
+def game_details(request, game_id):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+    
+    game = Game.objects.filter(id=game_id).first()
+    if not game:
+        return Response({"error message" : "game not found"}, status=404)
+    
+    game_data = {
+        "id" : str(game.id),
+        "type" : game.type,
+        "team_a_count" : game.team_a_count,
+        "team_b_count" : game.team_b_count,
+        "max_players" : game.max_players,
+        "created_by" : game.created_by.username,
+        "created_at" : game.created_at,
+        "team_a_members" : [m.username for m in game.team_a.all()],
+        "team_b_members" : [m.username for m in game.team_b.all()],
+        "queue_id" : game.queue.id if game.queue else None,
+        "total_players" : game.queue.participants.count() if game.queue else 0
+    }
+
+    return Response({"message" : "game details",
+                     "details" : game_data}, status=200)
 
 
 # Leave game endpoint
@@ -221,6 +252,13 @@ def leave_game(request):
         return Response(
         {"error message": "user not in game"},
         status=403)
+
+    if game.created_by.username == request.user.username:
+        GameInvites.objects.filter(queue=queue).delete()
+        game.delete()
+        queue.delete()
+        return Response({"message" : "game owner left, game deleted",
+                         "game_id" : game_id}, status=200)
 
     # Remove from game
     game.team_a.remove(request.user)
@@ -256,16 +294,15 @@ def end_game(request):
 
     if not game or not queue:
         return Response({"error message" : "game not found"}, status=404)
-    is_participant = (
-            game.team_a.filter(id=request.user.id).exists()
-            or game.team_b.filter(id=request.user.id).exists()
-        )
+        
+    if game.created_by.username != request.user.username:
+        return Response({"error message": "only owner can end game"}, status=403)
 
-    if not is_participant:
-        return Response(
-        {"error message": "not part of game"},
-        status=403)
-    
+    game_type = game.type
+    team_a_players = list(game.team_a.all())
+    team_b_players = list(game.team_b.all())
+    owner = game.created_by
+
     if game:
         game.delete()
 
@@ -275,10 +312,35 @@ def end_game(request):
 
     if queue:
         queue.delete()
+        
+    if game_type == 'public':
+        return Response({"message": "game ended", "type": game_type}, status=200)
+        
+    new_queue = Queue.objects.create(owner=owner)
     
+    for player in team_a_players:
+        new_queue.participants.add(player)
+        new_queue.team_a.add(player)
+        
+    for player in team_b_players:
+        new_queue.participants.add(player)
+        new_queue.team_b.add(player)
     
-    return Response({"message" : "game ended"}, status=200)
-    
+    return Response({"message" : "game ended",
+                     "new_queue_id": str(new_queue.id),
+                     "type": game_type}, status=200)
+
+# My queue endpoint
+@api_view(['GET'])
+def my_queue(request):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+        
+    queue = Queue.objects.filter(participants=request.user).first()
+    if not queue:
+        return Response({"message" : "no active queue"}, status=204)
+        
+    return Response({"queue_id": str(queue.id)}, status=200)
 
 # ________________________________________________________________________________
 # Invites apis
@@ -363,7 +425,6 @@ def send_invite(request):
             'invite_id': invite.id,
             'queue_id': invite.queue.id,
             'created_at' : str(invite.created_at)
-            'created_at' : str(invite.created_at)
         }
     )
 
@@ -384,17 +445,17 @@ def accept_invite(request):
     if not invite_id:
         return Response({"error message" : "no invite id"}, status=400)
     
-    invite = GameInvites.objects.filter(id=invite_id)
-    if not invite.exists():
+    invite = GameInvites.objects.filter(id=invite_id).first()
+    if not invite:
         return Response({"error message" : "no invite found"}, status=400)
 
-    if request.user.username != invite.first().invitee.username:
+    if request.user.username != invite.invitee.username:
         return Response({"error message" : "you are not the invitee"}, status=403)
     
-    if invite.first().status != 'pending':
-        return Response({"error message" : f"invite already {invite.first().status}"}, status=401)
+    if invite.status != 'pending':
+        return Response({"error message" : f"invite already {invite.status}"}, status=401)
 
-    if not invite.first().queue or invite.first().queue.status == 'launched':
+    if not invite.queue or invite.queue.status == 'launched':
         return Response({"error message" : "cant join queue"}, status=403)
     
     already_in_queue = (
@@ -405,21 +466,21 @@ def accept_invite(request):
     if already_in_queue:
         return Response({"error message": "already in another queue"}, status=409)
 
-    participants = invite.first().queue.participants.all()
+    participants = invite.queue.participants.all()
     if participants.count() == 6:
         return Response({"error message" : "queue full"}, status=403)
     
-    participants.add(request.user)
+    invite.queue.participants.add(request.user)
     
-    invite.first().status = 'accepted'
-    invite.first().save()
+    invite.status = "accepted"
+    invite.save()
 
 
     return Response({"message" : "user accepted invite",
                      "user" : request.user.username,
-                     "inviter" : invite.first().inviter.username,
-                     "invite_id" : invite.first().id,
-                     "queue_id" : invite.first().queue.id,
+                     "inviter" : invite.inviter.username,
+                     "invite_id" : invite.id,
+                     "queue_id" : invite.queue.id,
                      }, status=200)
 
 # Reject game invite api
@@ -432,24 +493,24 @@ def reject_invite(request):
     if not invite_id:
         return Response({"error message" : "no invite id"}, status=400)
 
-    invite = GameInvites.objects.filter(id=invite_id)
-    if not invite.exists():
+    invite = GameInvites.objects.filter(id=invite_id).first()
+    if not invite:
         return Response({"error message" : "invite doesnt exist"}, status=400)
     
-    if invite.first().invitee.username != request.user.username:
+    if invite.invitee.username != request.user.username:
         return Response({"error message" : "you are not the invitee"}, status=403)
     
-    if invite.first().status != 'pending':
-        return Response({"error message" : f"invite already {invite.first().status}"}, status=409)
+    if invite.status != 'pending':
+        return Response({"error message" : f"invite already {invite.status}"}, status=409)
 
-    invite.first().status = 'rejected'
-    invite.first().save()
+    invite.status = 'rejected'
+    invite.save()
 
     return Response({"message" : "user rejected invite",
                      "user" : request.user.username,
-                     "inviter" : invite.first().inviter.username,
-                     "invite_id" : invite.first().id,
-                     "status" : invite.first().status}, status=200)
+                     "inviter" : invite.inviter.username,
+                     "invite_id" : invite.id,
+                     "status" : invite.status}, status=200)
 
 # List game invites for a user
 @api_view(['GET'])
@@ -501,8 +562,8 @@ def create_queue(request):
         return Response({"error message" : "user not online"}, status=401)
     
     queues = Queue.objects.filter(owner=request.user)
-    in_team_a = Game.objects.filter(team_a=request.user).first().first()
-    in_team_b = Game.objects.filter(team_b=request.user).first().first()
+    in_team_a = Game.objects.filter(team_a=request.user).first()
+    in_team_b = Game.objects.filter(team_b=request.user).first()
 
     game_id = None
     if in_team_a:
@@ -546,6 +607,47 @@ def create_queue(request):
                      "owner" : request.user.username,
                      }, status=200)
 
+# Join queue endpoint
+@api_view(['POST'])
+def join_queue(request):
+    if not request.user.is_authenticated:
+        return Response({"error message" : "user not online"}, status=401)
+    
+    queue_id = request.data.get('queue_id')
+    if not queue_id:
+        return Response({"error message" : "no queue id"}, status=400)
+    
+    queue = Queue.objects.filter(id=queue_id).first()
+    if not queue:
+        return Response({"error message" : "queue not found"}, status=404)
+
+    game = Game.objects.filter(queue=queue).first()
+    max_players = game.max_players if game else 6
+
+    if queue.participants.count() >= max_players:
+        return Response({"error message" : "queue is full"}, status=400)
+        
+    already_in_queue = (
+        Queue.objects.filter(owner=request.user).exists()
+        or Queue.objects.filter(team_a=request.user).exists()
+        or Queue.objects.filter(team_b=request.user).exists()
+        or Queue.objects.filter(participants=request.user).exists()
+    )
+
+    if already_in_queue:
+        in_game = Game.objects.filter(team_a=request.user).first() or Game.objects.filter(team_b=request.user).first()
+        return Response({
+            "error message": "already in another queue",
+            "game_id": str(in_game.id) if in_game else None
+        }, status=409)
+
+    queue.participants.add(request.user)
+    
+    return Response({"message" : "user joined queue",
+                     "queue_id" : queue.id,
+                     "user" : request.user.username}, status=200)
+
+
 # lock team in queue
 @api_view(['POST'])
 def choose_team(request):
@@ -569,7 +671,7 @@ def choose_team(request):
     if not queue.first().participants.filter(username=request.user.username).exists():
         return Response({"error message" : "user not part of the queue"}, status=403)
 
-    if queue.first().status == 'waiting':
+    if queue.first().status in ['waiting', 'launched']:
         queue.first().team_a.remove(request.user)
         queue.first().team_b.remove(request.user)
         if team == 'team_a':
@@ -642,6 +744,13 @@ def list_queue(request, queue_id):
     team_a_users = list(queue.team_a.values_list('username', flat=True))
     team_b_users = list(queue.team_b.values_list('username', flat=True))
 
+    participants = []
+    for p in queue.participants.all():
+        participants.append({
+            "username" : p.username,
+            "avatar" : p.avatar.url if p.avatar else None,
+        })
+
     queue_data = {
         "queue_id" : queue_id,
         "owner" : queue.owner.username,
@@ -650,6 +759,7 @@ def list_queue(request, queue_id):
         "team_b_users" : team_b_users,
         "team_a_count" : len(team_a_users),
         "team_b_count" : len(team_b_users),
+        "participants" : participants,
     }
 
     if queue.status == 'launched':

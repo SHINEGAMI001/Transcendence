@@ -38,6 +38,8 @@ function PrivateRoom() {
       return slots
    }, [teamB])
 
+   const isNavigatingToGame = React.useRef(false)
+
    const fetchQueue = useCallback(async (id) => {
       try {
          const res = await api.get(`api/game/list_queue/${id}/`)
@@ -45,6 +47,7 @@ function PrivateRoom() {
          // Auto-redirect if game has been launched
          if (d.status === 'launched' && d.game_id) {
             sessionStorage.removeItem(STORAGE_KEY)
+            isNavigatingToGame.current = true
             navigate(`/game/${d.game_id}`)
             return true
          }
@@ -57,6 +60,8 @@ function PrivateRoom() {
          return true
       } catch {
          sessionStorage.removeItem(STORAGE_KEY)
+         alert('Queue is no longer available.')
+         navigate('/lobby')
          return false
       }
    }, [navigate])
@@ -94,21 +99,13 @@ function PrivateRoom() {
                const ok = await fetchQueue(Number(storedId))
                if (ok) {
                   setQueueId(Number(storedId))
-                  setLoading(false)
-                  return
                }
-            }
-
-            const queueRes = await api.post('api/game/create_queue/')
-            const newId = queueRes.data.queue_id
-            setQueueId(newId)
-            sessionStorage.setItem(STORAGE_KEY, String(newId))
-         } catch (err) {
-            console.error('Init failed:', err)
-            if (err.response?.data?.['error message'] === 'user already in queue') {
-               alert('You are already in another queue. Leave it first.')
+            } else {
                navigate('/lobby')
             }
+         } catch (err) {
+            console.error('Init failed:', err)
+            navigate('/lobby')
          } finally {
             setLoading(false)
          }
@@ -130,8 +127,13 @@ function PrivateRoom() {
          e.returnValue = '';
       };
       window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-   }, []);
+      return () => {
+         window.removeEventListener('beforeunload', handleBeforeUnload);
+         if (queueId && !isNavigatingToGame.current) {
+            api.post('api/game/leave_queue/', { queue_id: queueId }).catch(() => {})
+         }
+      };
+   }, [queueId]);
 
    async function handleInvite(friendUsername) {
       if (!queueId) return
@@ -176,6 +178,7 @@ function PrivateRoom() {
          });
          if (res.data.game_id) {
             sessionStorage.removeItem(STORAGE_KEY)
+            isNavigatingToGame.current = true
             navigate(`/game/${res.data.game_id}`);
          }
       } catch (error) {

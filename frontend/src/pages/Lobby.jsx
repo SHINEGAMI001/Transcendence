@@ -165,6 +165,44 @@ function Lobby() {
     }
   }, [isLoggedIn])
 
+  const handleCreatePrivateRoom = async () => {
+    try {
+      const res = await api.post('api/game/create_queue/')
+      sessionStorage.setItem('private_queue_id', String(res.data.queue_id))
+      navigate('/room/private')
+    } catch (err) {
+      console.error('Failed to create private room queue:', err)
+      if (err.response?.data?.['error message'] === 'user already in queue') {
+        const gameId = err.response?.data?.game_id;
+        if (gameId) {
+            if (window.confirm("You are already in an active game. Reconnect?")) {
+                navigate(`/game/${gameId}`);
+            }
+        } else {
+            const confirmLeave = window.confirm('You are already in another queue. Leave the current queue to create a new one?')
+            if (confirmLeave) {
+              const existingQueueId = err.response?.data?.queue_id
+              if (existingQueueId) {
+             try {
+                await api.post('api/game/leave_queue/', { queue_id: existingQueueId })
+                // Retry creating queue
+                const retryRes = await api.post('api/game/create_queue/')
+                sessionStorage.setItem('private_queue_id', String(retryRes.data.queue_id))
+                navigate('/room/private')
+             } catch (leaveErr) {
+                alert('Failed to leave the existing queue.')
+             }
+          } else {
+             alert('Please leave your current queue first.')
+          }
+        }
+      }
+      } else {
+        alert(err.response?.data?.['error message'] || 'Failed to create queue')
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen text-text-primary flex overflow-hidden relative">
       <SettingsPanel />
@@ -373,7 +411,7 @@ function Lobby() {
 
             {/* Private Room Button */}
             <button
-              onClick={() => navigate('/room/private')}
+              onClick={handleCreatePrivateRoom}
               className="group relative w-64 h-36 rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(124,58,237,0.3)] active:scale-95"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-violet-600/80 to-violet-900/80 border-2 border-violet-400/30 rounded-3xl" />

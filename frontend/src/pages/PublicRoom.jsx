@@ -53,22 +53,68 @@ function PublicRoom() {
     
     setJoining(true)
     try {
-      // Logic: Join the team with fewer players, or team_a by default
-      const team = selectedRoom.team_a_count <= selectedRoom.team_b_count ? 'team_a' : 'team_b'
-      
-      const res = await api.post('api/game/join/', {
-        game_id: selectedRoom.id,
-        team: team
+      const res = await api.post('api/game/join_queue/', {
+        queue_id: selectedRoom.queue_id
       })
 
-      if (res.data.game_id) {
-        navigate(`/game/${res.data.game_id}`)
+      if (res.data.queue_id) {
+        sessionStorage.setItem('join_public_queue_id', String(res.data.queue_id))
+        sessionStorage.setItem('join_public_game_id', String(selectedRoom.id))
+        navigate(`/room/create`)
       }
     } catch (error) {
       console.error('Join failed:', error)
-      alert(error.response?.data?.['error message'] || 'Failed to join game')
+      if (error.response?.data?.['error message'] === 'already in another queue') {
+        const gameId = error.response?.data?.game_id;
+        if (gameId) {
+            if (window.confirm("You are already in an active game. Reconnect?")) {
+                navigate(`/game/${gameId}`);
+            }
+        } else {
+            alert('You are already in another queue. Leave it first.')
+        }
+      } else {
+        alert(error.response?.data?.['error message'] || 'Failed to join queue')
+      }
     } finally {
       setJoining(false)
+    }
+  }
+
+  const handleCreatePublicRoom = async () => {
+    try {
+      const res = await api.post('api/game/create_queue/')
+      sessionStorage.setItem('public_queue_id', String(res.data.queue_id))
+      navigate('/room/create')
+    } catch (err) {
+      console.error('Failed to create public room queue:', err)
+      if (err.response?.data?.['error message'] === 'user already in queue') {
+        const gameId = err.response?.data?.game_id;
+        if (gameId) {
+            if (window.confirm("You are already in an active game. Reconnect?")) {
+                navigate(`/game/${gameId}`);
+            }
+        } else {
+            const confirmLeave = window.confirm('You are already in another queue. Leave the current queue to create a new one?')
+            if (confirmLeave) {
+              const existingQueueId = err.response?.data?.queue_id
+              if (existingQueueId) {
+             try {
+                await api.post('api/game/leave_queue/', { queue_id: existingQueueId })
+                const retryRes = await api.post('api/game/create_queue/')
+                sessionStorage.setItem('public_queue_id', String(retryRes.data.queue_id))
+                navigate('/room/create')
+             } catch (leaveErr) {
+                alert('Failed to leave the existing queue.')
+             }
+          } else {
+             alert('Please leave your current queue first.')
+          }
+        }
+      }
+      } else {
+        alert(err.response?.data?.['error message'] || 'Failed to create queue')
+      }
     }
   }
 
@@ -127,7 +173,7 @@ function PublicRoom() {
 
             <div className="grid gap-3">
               {rooms.length > 0 ? rooms.map(room => {
-                const currentPlayers = (room.team_a_count || 0) + (room.team_b_count || 0)
+                const currentPlayers = room.total_players || 0
                 return (
                   <button
                     key={room.id}
@@ -194,10 +240,10 @@ function PublicRoom() {
                     <div>
                       <p className="text-[9px] font-black text-white/30 uppercase mb-1">Current Occupancy</p>
                       <p className="text-2xl font-black text-white tracking-tighter">
-                        {selectedRoom.team_a_count + selectedRoom.team_b_count} / {selectedRoom.max_players}
+                        {selectedRoom.total_players || 0} / {selectedRoom.max_players}
                       </p>
                     </div>
-                    <div className={`w-3 h-3 rounded-full ${selectedRoom.team_a_count + selectedRoom.team_b_count < selectedRoom.max_players ? 'bg-green-400 animate-pulse' : 'bg-error'}`} />
+                    <div className={`w-3 h-3 rounded-full ${selectedRoom.total_players < selectedRoom.max_players ? 'bg-green-400 animate-pulse' : 'bg-error'}`} />
                   </div>
                 </div>
 
@@ -251,13 +297,13 @@ function PublicRoom() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/room/create')} className="px-8 py-4 rounded-xl bg-green-500/20 text-green-400 border border-green-400/30 font-black italic tracking-tighter text-lg hover:bg-green-500/30 transition-all cursor-pointer">
+          <button onClick={handleCreatePublicRoom} className="px-8 py-4 rounded-xl bg-green-500/20 text-green-400 border border-green-400/30 font-black italic tracking-tighter text-lg hover:bg-green-500/30 transition-all cursor-pointer">
             CREATE ROOM
           </button>
           <button
-            disabled={!selectedRoom || (selectedRoom.team_a_count + selectedRoom.team_b_count) === selectedRoom.max_players || joining}
+            disabled={!selectedRoom || selectedRoom.total_players === selectedRoom.max_players || joining}
             onClick={handleJoin}
-            className={`px-12 py-4 rounded-xl font-black italic tracking-tighter text-lg transition-all duration-300 ${selectedRoom && (selectedRoom.team_a_count + selectedRoom.team_b_count) < selectedRoom.max_players
+            className={`px-12 py-4 rounded-xl font-black italic tracking-tighter text-lg transition-all duration-300 ${selectedRoom && selectedRoom.total_players < selectedRoom.max_players
                 ? 'bg-green-400 text-black hover:scale-105 shadow-[0_0_40px_rgba(34,197,94,0.4)] active:scale-95 cursor-pointer'
                 : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
               }`}

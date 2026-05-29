@@ -8,7 +8,14 @@ import synthwaveBg from '../assets/synthwave_bg.png';
 
 const GameRoom = () => {
     const { roomId } = useParams();
-    const { user } = useAuth();
+    const { isLoggedIn } = useAuth();
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        if (isLoggedIn) {
+            api.get('api/profile/me').then(res => setUser(res.data)).catch(() => { });
+        }
+    }, [isLoggedIn]);
     const navigate = useNavigate();
     const [matchInfo, setMatchInfo] = useState(null);
     const { gameState, status, connect, initData, sendMessage, chatMessages } = useGameSocket(roomId);
@@ -17,8 +24,8 @@ const GameRoom = () => {
     const chatEndRef = useRef(null);
 
     useEffect(() => {
-        api.get(`api/game/list/`).then(res => {
-            const match = res.data.listed_games?.find(g => g.id === roomId);
+        api.get(`api/game/details/${roomId}/`).then(res => {
+            const match = res.data.details;
             if (match) {
                 setMatchInfo(match);
                 const isTeamA = match.team_a_members?.includes(user?.username);
@@ -27,7 +34,7 @@ const GameRoom = () => {
                 else if (isTeamB) connect('team_b');
                 else connect('team_a');
             }
-        }).catch(() => {});
+        }).catch(() => { });
     }, [roomId, user, connect]);
 
     useEffect(() => {
@@ -43,6 +50,64 @@ const GameRoom = () => {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, []);
 
+    useEffect(() => {
+        if (gameState?.winner && matchInfo) {
+            const isOwner = matchInfo.created_by === user?.username;
+
+            if (isOwner) {
+                // Owner ends game and recreates queue after 5 seconds
+                const timer = setTimeout(async () => {
+                    try {
+                        const qId = matchInfo?.queue_id || sessionStorage.getItem('private_queue_id') || sessionStorage.getItem('public_queue_id') || sessionStorage.getItem('join_public_queue_id');
+                        const res = await api.post('api/game/end_game/', {
+                            game_id: roomId,
+                            queue_id: Number(qId)
+                        });
+                        const newQId = res.data.new_queue_id;
+                        const type = res.data.type;
+                        if (type === 'public') {
+                            sessionStorage.removeItem('public_queue_id');
+                            sessionStorage.removeItem('join_public_queue_id');
+                            navigate('/room/public');
+                        } else {
+                            sessionStorage.setItem('private_queue_id', newQId);
+                            navigate('/room/private');
+                        }
+                    } catch (err) {
+                        console.error('Failed to end game:', err);
+                    }
+                }, 5000);
+                return () => clearTimeout(timer);
+            } else {
+                // Non-owner waits 6 seconds
+                const timer = setTimeout(async () => {
+                    const type = matchInfo.type || 'public';
+                    if (type === 'public') {
+                        sessionStorage.removeItem('join_public_queue_id');
+                        sessionStorage.removeItem('public_queue_id');
+                        navigate('/room/public');
+                        return;
+                    }
+
+                    try {
+                        const res = await api.get('api/game/my_queue/');
+                        if (res.status === 200 && res.data.queue_id) {
+                            const newQId = res.data.queue_id;
+                            sessionStorage.setItem('private_queue_id', newQId);
+                            navigate('/room/private');
+                        } else {
+                            navigate('/lobby');
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch new queue:', err);
+                        navigate('/lobby');
+                    }
+                }, 6000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [gameState?.winner, matchInfo, roomId, navigate, user?.username]);
+
     const handleChatSubmit = (e) => {
         e.preventDefault();
         if (chatInput.trim()) {
@@ -53,18 +118,18 @@ const GameRoom = () => {
 
     const getSenderColor = (sender) => {
         if (sender === user?.username) return '#fbbf24'; // Yellow for self
-        
+
         // Check match info
         if (matchInfo?.team_a_members?.includes(sender)) return '#0c0cfdff';
         if (matchInfo?.team_b_members?.includes(sender)) return '#f60808ff';
-        
+
         // Fallback to live game state if no match info
         if (gameState?.players) {
             const player = Object.values(gameState.players).find(p => p.n === sender);
             if (player?.t === 'left') return '#0c0cfdff';
             if (player?.t === 'right') return '#f60808ff';
         }
-        
+
         return '#9ca3af'; // Grey fallback
     };
 
@@ -77,11 +142,12 @@ const GameRoom = () => {
                         // If we have a stored queueId, leave it as well
                         const storedPublic = sessionStorage.getItem('public_queue_id');
                         const storedPrivate = sessionStorage.getItem('private_queue_id');
-                        const qId = storedPublic || storedPrivate;
-                        
+                        const joinQueue = sessionStorage.getItem('join_public_queue_id');
+                        const qId = storedPublic || storedPrivate || joinQueue || matchInfo?.queue_id;
+
                         if (qId) {
                             try {
-                                await api.post('api/game/leave_queue/', { queue_id: Number(qId) });
+                                await api.post('api/game/leave_game/', { game_id: roomId, queue_id: Number(qId) });
                             } catch (err) {
                                 console.error('Failed to leave queue on quit:', err);
                             } finally {
@@ -101,8 +167,8 @@ const GameRoom = () => {
                     {/* Open door leaf */}
                     <path d="M15 4 L15 20 L9 18 L9 6 Z" fill="rgba(89, 0, 223, 0.4)" stroke="rgba(89, 0, 223, 1)" strokeWidth="1.5" />
                     {/* Red arrow pointing out */}
-                    <path d="M17 12 L22 12" stroke="#f60808ff" strokeWidth="2.5" strokeLinecap="round"/>
-                    <path d="M20 9 L22.5 12 L20 15" stroke="#f60808ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M17 12 L22 12" stroke="#f60808ff" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M20 9 L22.5 12 L20 15" stroke="#f60808ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
             </button>
 
@@ -111,7 +177,7 @@ const GameRoom = () => {
                 ...styles.statusPill,
                 ...(status === 'open' ? styles.statusOpen :
                     status === 'connecting' ? styles.statusConnecting :
-                    styles.statusError)
+                        styles.statusError)
             }}>
                 ● {status === 'open' ? 'Live' : status === 'connecting' ? 'Connecting...' : 'Disconnected'}
             </div>
@@ -150,10 +216,10 @@ const GameRoom = () => {
 
                 {/* Chat overlay */}
                 <div style={styles.chatWrapper}>
-                    <div 
+                    <div
                         style={{
-                            ...styles.chatMessages, 
-                            overflowY: isChatHovered ? 'auto' : 'hidden' 
+                            ...styles.chatMessages,
+                            overflowY: isChatHovered ? 'auto' : 'hidden'
                         }}
                         onMouseEnter={() => setIsChatHovered(true)}
                         onMouseLeave={() => setIsChatHovered(false)}
