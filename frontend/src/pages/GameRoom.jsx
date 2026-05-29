@@ -18,10 +18,17 @@ const GameRoom = () => {
     }, [isLoggedIn]);
     const navigate = useNavigate();
     const [matchInfo, setMatchInfo] = useState(null);
-    const { gameState, status, connect, initData, sendMessage, chatMessages } = useGameSocket(roomId);
+    const { gameState, status, connect, initData, sendMessage, chatMessages, ping } = useGameSocket(roomId);
     const [chatInput, setChatInput] = useState('');
     const [isChatHovered, setIsChatHovered] = useState(false);
+    const [fps, setFps] = useState(0);
+    const [showMatchPoint, setShowMatchPoint] = useState(false);
+    const matchPointShownRef = useRef(false);
+    const framesRef = useRef(0);
+    const lastFpsTimeRef = useRef(performance.now());
+
     const chatEndRef = useRef(null);
+    const chatInputRef = useRef(null);
 
     useEffect(() => {
         api.get(`api/game/details/${roomId}/`).then(res => {
@@ -49,6 +56,47 @@ const GameRoom = () => {
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, []);
+
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            if (e.key === 'Enter') {
+                if (document.activeElement !== chatInputRef.current) {
+                    e.preventDefault(); // prevent default scrolling or other behaviors
+                    chatInputRef.current?.focus();
+                }
+            }
+        };
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, []);
+
+    useEffect(() => {
+        let rafId;
+        const loop = () => {
+            framesRef.current++;
+            const now = performance.now();
+            if (now - lastFpsTimeRef.current >= 1000) {
+                setFps(framesRef.current);
+                framesRef.current = 0;
+                lastFpsTimeRef.current = now;
+            }
+            rafId = requestAnimationFrame(loop);
+        };
+        rafId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(rafId);
+    }, []);
+
+    useEffect(() => {
+        if (!gameState) return;
+        const isMatchPoint = gameState.score?.left === 4 || gameState.score?.right === 4;
+        
+        if (isMatchPoint && !gameState.winner && !matchPointShownRef.current) {
+            matchPointShownRef.current = true;
+            setShowMatchPoint(true);
+            const timer = setTimeout(() => setShowMatchPoint(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [gameState?.score?.left, gameState?.score?.right, gameState?.winner]);
 
     useEffect(() => {
         if (gameState?.winner && matchInfo) {
@@ -114,6 +162,7 @@ const GameRoom = () => {
             sendMessage({ type: 'chat', text: chatInput.trim() });
             setChatInput('');
         }
+        chatInputRef.current?.blur();
     };
 
     const getSenderColor = (sender) => {
@@ -192,7 +241,7 @@ const GameRoom = () => {
                 </div>
 
                 <div style={styles.timerGroup}>
-                    <span style={{ color: 'rgba(251, 255, 0, 1)', fontSize: 14 }}>
+                    <span style={{ color: 'rgba(251, 255, 0, 1)', fontSize: 14, fontWeight: 'bold', textShadow: '0 0 8px rgba(251,255,0,0.5)' }}>
                         {gameState?.timer ?? '00:00'}
                     </span>
                 </div>
@@ -207,6 +256,22 @@ const GameRoom = () => {
 
             {/* Canvas arena */}
             <div style={styles.arenaWrap}>
+                {/* Simple Match Point text inside the field */}
+                {showMatchPoint && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: '#ef4444',
+                        fontSize: 32,
+                        fontWeight: 'bold',
+                        zIndex: 45,
+                        pointerEvents: 'none'
+                    }}>
+                        MATCH POINT
+                    </div>
+                )}
                 <GameCanvas
                     gameState={gameState}
                     initData={initData}
@@ -239,6 +304,7 @@ const GameRoom = () => {
                     </div>
                     <form onSubmit={handleChatSubmit} style={{ display: 'flex' }}>
                         <input
+                            ref={chatInputRef}
                             type="text"
                             placeholder="Enter to chat..."
                             autoComplete="off"
@@ -270,6 +336,18 @@ const GameRoom = () => {
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Win Condition Hint */}
+            <div style={styles.winConditionHint}>
+                SCORE 5 POINTS TO WIN
+            </div>
+
+            {/* Metrics: Ping and FPS */}
+            <div style={styles.metricsContainer}>
+                PING: <span style={{ color: (ping !== null && ping < 100) ? '#34d399' : (ping < 200 ? '#fbbf24' : '#f87171') }}>{ping !== null ? `${ping}ms` : '---'}</span>
+                &nbsp;|&nbsp;
+                FPS: <span style={{ color: fps >= 50 ? '#34d399' : (fps >= 30 ? '#fbbf24' : '#f87171') }}>{fps}</span>
             </div>
 
             {/* Controls hint */}
@@ -438,6 +516,36 @@ const styles = {
         color: 'rgba(255, 255, 255, 1)',
         fontFamily: "'Courier New', monospace",
     },
+    winConditionHint: {
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        color: 'rgba(251, 255, 0, 1)',
+        fontSize: 16,
+        fontFamily: "'Courier New', monospace",
+        fontWeight: '900',
+        letterSpacing: 2,
+        zIndex: 50,
+        textShadow: '0 0 15px rgba(251, 255, 0, 0.6)',
+        background: 'rgba(0,0,0,0.5)',
+        padding: '8px 16px',
+        border: '2px solid rgba(251, 255, 0, 0.3)',
+        borderRadius: '8px',
+    },
+    metricsContainer: {
+        position: 'absolute',
+        bottom: 24,
+        left: 24,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 14,
+        fontFamily: "'Courier New', monospace",
+        fontWeight: 'bold',
+        zIndex: 50,
+        background: 'rgba(0,0,0,0.5)',
+        padding: '8px 16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '8px',
+    }
 };
 
 export default GameRoom;

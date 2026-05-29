@@ -64,7 +64,7 @@ function drawField(ctx, W, H) {
 
   // Penalty areas
   const penaltyW = 70;
-  const penaltyH = 200;
+  const penaltyH = 150;
   const penaltyTop = (H - penaltyH) / 2;
   ctx.save();
   ctx.strokeStyle = NEON.line;
@@ -81,7 +81,7 @@ function drawField(ctx, W, H) {
   ctx.shadowBlur = 24;
   ctx.shadowColor = NEON.goalLeft;
   ctx.strokeStyle = NEON.goalLeft;
-  ctx.lineWidth = 42;
+  ctx.lineWidth = 30;
   ctx.beginPath();
   ctx.moveTo(0, GOAL_TOP);
   ctx.lineTo(-GOAL_DEPTH, GOAL_TOP);
@@ -99,7 +99,7 @@ function drawField(ctx, W, H) {
   ctx.shadowBlur = 24;
   ctx.shadowColor = NEON.goalRight;
   ctx.strokeStyle = NEON.goalRight;
-  ctx.lineWidth = 42;
+  ctx.lineWidth = 30;
   ctx.beginPath();
   ctx.moveTo(W, GOAL_TOP);
   ctx.lineTo(W + GOAL_DEPTH, GOAL_TOP);

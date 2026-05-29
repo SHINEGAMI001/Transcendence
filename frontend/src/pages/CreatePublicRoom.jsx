@@ -16,6 +16,8 @@ function CreatePublicRoom() {
    const [queueId, setQueueId] = useState(null)
    const [teamA, setTeamA] = useState([])   // array of usernames
    const [teamB, setTeamB] = useState([])
+   const [participants, setParticipants] = useState([])
+   const [owner, setOwner] = useState(null)
    const [creating, setCreating] = useState(false)
    const [loading, setLoading] = useState(true)
    const [isJoinMode, setIsJoinMode] = useState(false)
@@ -54,6 +56,8 @@ function CreatePublicRoom() {
          }
          setTeamA(d.team_a_users || [])
          setTeamB(d.team_b_users || [])
+         setParticipants(d.participants || [])
+         setOwner(d.owner)
          return true
       } catch {
          // Queue no longer exists
@@ -267,12 +271,25 @@ function CreatePublicRoom() {
                <h2 className="text-2xl font-black tracking-tight text-white italic">
                   PUBLIC <span className="text-violet-400">ARENA</span>
                </h2>
-               <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Match Setup {queueId ? `• Queue #${queueId}` : ''}</div>
+               <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Match Setup {queueId ? `• Queue #${queueId}` : ''} ({teamA.length + teamB.length}/6)</div>
             </div>
 
             {/* User Avatar */}
             <div className="flex items-center gap-4 py-2">
-               {user && <UserAvatar member={user} isLarge={true} />}
+               {participants.map(p => {
+                  const isOwner = p.username === owner;
+                  const isMe = p.username === user?.username;
+                  return (
+                     <div key={p.username} className="relative">
+                        <UserAvatar member={p} isLarge={isMe} />
+                        {isOwner && (
+                           <div className="absolute -top-3 -right-3 text-yellow-400 rotate-12 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]" title="Queue Owner">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+                           </div>
+                        )}
+                     </div>
+                  );
+               })}
             </div>
          </header>
 

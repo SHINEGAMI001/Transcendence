@@ -18,6 +18,8 @@ function PrivateRoom() {
    const [teamB, setTeamB] = useState([])
    const [friends, setFriends] = useState([])
    const [invites, setInvites] = useState({}) // { username: 'pending' | 'accepted' | 'rejected' }
+   const [participants, setParticipants] = useState([])
+   const [owner, setOwner] = useState(null)
    const [loading, setLoading] = useState(true)
    const [starting, setStarting] = useState(false)
 
@@ -53,10 +55,10 @@ function PrivateRoom() {
          }
          setTeamA(d.team_a_users || [])
          setTeamB(d.team_b_users || [])
-         // Overwrite/Merge invites status from backend
-         if (d.invites) {
-            setInvites(prev => ({ ...prev, ...d.invites }))
-         }
+         setParticipants(d.participants || [])
+         setOwner(d.owner)
+         // Sync invites directly with backend state to handle deletions when they leave
+         setInvites(d.invites || {})
          return true
       } catch {
          sessionStorage.removeItem(STORAGE_KEY)
@@ -247,11 +249,24 @@ function PrivateRoom() {
                <h2 className="text-2xl font-black tracking-tight text-white italic">
                   PRIVATE <span className="text-violet-400">ARENA</span>
                </h2>
-               <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Match Setup {queueId ? `• Queue #${queueId}` : ''} ({teamA.length + teamB.length}/10)</div>
+               <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/30">Match Setup {queueId ? `• Queue #${queueId}` : ''} ({teamA.length + teamB.length}/6)</div>
             </div>
 
             <div className="flex items-center gap-4 py-2">
-               {user && <UserAvatar member={user} isLarge={true} />}
+               {participants.map(p => {
+                  const isOwner = p.username === owner;
+                  const isMe = p.username === user?.username;
+                  return (
+                     <div key={p.username} className="relative">
+                        <UserAvatar member={p} isLarge={isMe} />
+                        {isOwner && (
+                           <div className="absolute -top-3 -right-3 text-yellow-400 rotate-12 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]" title="Queue Owner">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
+                           </div>
+                        )}
+                     </div>
+                  );
+               })}
             </div>
          </header>
 
@@ -282,14 +297,17 @@ function PrivateRoom() {
                            <button
                               onClick={() => handleInvite(friend.username)}
                               disabled={isInQueue || status === 'pending' || status === 'accepted' || !friend.isOnline}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isInQueue ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' :
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center min-w-[80px] ${isInQueue ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' :
                                     status === 'accepted' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
                                     status === 'pending' ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30' :
                                        friend.isOnline ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' :
                                           'bg-transparent text-white/20 cursor-not-allowed'
                                  }`}
                            >
-                              {isInQueue ? 'READY' : status === 'accepted' ? 'ACCEPTED' : status === 'pending' ? 'PENDING' : 'INVITE'}
+                              {isInQueue ? 'READY' : 
+                               status === 'accepted' ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                               ) : status === 'pending' ? 'PENDING' : 'INVITE'}
                            </button>
                         </div>
                      )
