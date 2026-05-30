@@ -52,9 +52,21 @@
 ```bash
 #inside backend container
 python manage.py makemigrations #creates database blueprint
-python manage.py migrate #runs sql commands to create that blueprint
+    python manage.py migrate #runs sql commands to create that blueprint
  #after creating models django knows but database doesnt so u should always do this for updates to take place in database (this doesnt apply for actual data only when database structure changes)
 ```
+
+### Nginx reverse proxy
+- Nginx serves the built frontend on [http://localhost](http://localhost) and proxies API/admin/static/media and WebSocket traffic to the backend.
+- Build the frontend whenever it changes:
+```bash
+docker compose run --rm frontend npm run build
+```
+- Start the stack with Nginx:
+```bash
+docker compose up -d nginx backend db
+```
+- If you use Nginx locally, set `FRONTEND_HOST=http://localhost` in `.env` so Django trusts the origin.
 ### backend available apis
 * check [views.py](backend/users/views.py) for views functions and [urls.py](backend/users/urls.py) for url routing
 - Users endpoints:
