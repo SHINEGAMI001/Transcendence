@@ -28,9 +28,10 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx:alpine
+    build: ./nginx
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
     volumes:
