@@ -721,6 +721,8 @@ def leave_queue(request):
     queue.first().team_b.remove(request.user)
     queue.first().participants.remove(request.user)
 
+    GameInvites.objects.filter(queue=queue.first(), invitee=request.user).delete()
+
     return Response({"message" : "user left the queue",
                      "queue_id" : queue_id,
                      "user" : request.user.username,
@@ -750,6 +752,9 @@ def list_queue(request, queue_id):
             "username" : p.username,
             "avatar" : p.avatar.url if p.avatar else None,
         })
+        
+    invites = GameInvites.objects.filter(queue=queue)
+    invites_dict = {invite.invitee.username: invite.status for invite in invites}
 
     queue_data = {
         "queue_id" : queue_id,
@@ -760,6 +765,7 @@ def list_queue(request, queue_id):
         "team_a_count" : len(team_a_users),
         "team_b_count" : len(team_b_users),
         "participants" : participants,
+        "invites": invites_dict,
     }
 
     if queue.status == 'launched':
