@@ -35,7 +35,8 @@ ALLOWED_HOSTS = [
     'nginx',
     'backend',
     'localhost',
-    '127.0.0.1'
+    '127.0.0.1',
+    '192.168.100.76',
 ]
 
 
@@ -82,6 +83,7 @@ else:
     CORS_ALLOWED_ORIGINS = [
         f'https://{DOMAIN_HOST}',
         f'https://www.{DOMAIN_HOST}',
+        'https://192.168.100.76',
     ]
 
 CSRF_TRUSTED_ORIGINS = [

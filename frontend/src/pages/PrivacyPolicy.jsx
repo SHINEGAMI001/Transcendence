@@ -24,38 +24,35 @@ function PrivacyPolicy() {
       {/* Content */}
       <main className="flex-1 overflow-y-auto p-8 relative z-10">
         <div className="max-w-4xl mx-auto bg-black/40 border border-white/10 rounded-2xl p-8 backdrop-blur-xl">
-          <h1 className="text-4xl font-black text-violet-400 italic mb-8 drop-shadow-[0_2px_10px_rgba(139,92,246,0.3)]">PRIVACY POLICY & GDPR COMPLIANCE</h1>
+          <h1 className="text-4xl font-black text-violet-400 italic mb-8 drop-shadow-[0_2px_10px_rgba(139,92,246,0.3)]">PRIVACY POLICY & TERMS OF SERVICE</h1>
           
           <section className="mb-10">
-            <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">1. Data Collection & Analytics</h3>
+            <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">1. Privacy and Data Collection</h3>
             <p className="text-white/60 mb-4 leading-relaxed">
-              To provide you with the best possible gaming experience, Rarcade collects performance and gameplay data. This data powers your personal <strong>Advanced Analytics Dashboard</strong>, where you can view interactive charts, graphs (including line, bar, and pie charts), and real-time updates of your gaming sessions.
+              At Rarecade, we believe in a pure, uninterrupted gaming experience. We are committed to your privacy and have designed our platform from the ground up to respect it. 
             </p>
             <p className="text-white/60 mb-4 leading-relaxed">
-              We believe your data belongs to you. Therefore, we provide robust <strong>data export and import functionality</strong>. You can export your analytics and historical match records in multiple formats (including PDF, JSON, CSV, and XML) and utilize customizable date ranges and filters to isolate specific data segments. Furthermore, our platform supports bulk operations and data imports with strict validation to maintain the integrity of your records.
+              <strong>We do not collect, sell, or share your personal data.</strong> The only information we store on our servers is the basic account information required for authentication (such as your username and password) and your game history strictly for displaying match results and leaderboards within the platform.
+            </p>
+            <p className="text-white/60 leading-relaxed">
+              We do not use third-party analytics trackers, advertising cookies, or invasive profiling. Your gameplay is your own.
             </p>
           </section>
 
           <section className="mb-10">
-            <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">2. GDPR Compliance & Your Rights</h3>
+            <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">2. Account Security</h3>
             <p className="text-white/60 mb-4 leading-relaxed">
-              Rarcade is fully committed to the General Data Protection Regulation (GDPR) and ensuring your digital privacy rights are respected. As a user of our platform, you are guaranteed the following rights regarding your personal information:
+              You are responsible for maintaining the confidentiality of your account credentials. While we employ industry-standard security measures to protect the minimal data we do store, we cannot guarantee absolute security against unauthorized access.
             </p>
-            
-            <div className="bg-violet-900/20 border border-violet-500/30 rounded-xl p-6 mb-4">
-              <ul className="list-disc list-inside text-white/60 space-y-3 ml-2">
-                <li><strong className="text-violet-300">Right to Access:</strong> You may request a complete archive of your personal data at any time.</li>
-                <li><strong className="text-violet-300">Data Portability:</strong> You can export your user data in a structured, commonly used, and machine-readable format directly from your profile settings.</li>
-                <li><strong className="text-violet-300">Right to Erasure:</strong> You have the "right to be forgotten." You may request permanent data deletion from our servers, subject to a strict confirmation process to prevent accidental loss.</li>
-                <li><strong className="text-violet-300">Security & Verification:</strong> To protect your identity, confirmation emails are mandatory for all major data operations, including exports and deletions.</li>
-              </ul>
-            </div>
+            <p className="text-white/60 leading-relaxed">
+              If you wish to delete your account and all associated match history from our servers, you may do so at any time by contacting our support team or using the account deletion tools provided in your profile settings.
+            </p>
           </section>
 
           <section className="mb-10">
             <h3 className="text-2xl font-bold text-white mb-4 border-b border-white/10 pb-2">3. Terms of Service & Fair Play</h3>
             <p className="text-white/60 leading-relaxed">
-              By using our service, you agree to adhere to fair play and respectful conduct in all public and private match rooms. We reserve the right to suspend accounts that violate our terms or engage in malicious activity that disrupts the gaming experience for others. All analytics data is collected solely to enhance gameplay, maintain competitive integrity, and improve the overall user experience.
+              Rarecade is a community built on competition and respect. By using our service, you agree to adhere to fair play and respectful conduct in all public and private match rooms. We reserve the right to suspend or ban accounts that violate these terms, engage in harassment, or use malicious software to disrupt the gaming experience for others.
             </p>
           </section>
           
