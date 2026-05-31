@@ -249,6 +249,14 @@ async def _game_loop(room):
                     tick(room, dt)
                 except Exception:
                     logger.exception("[%s] tick() error", room_id)
+                # save winner and loser stats
+                if room.winner and not room.winner_saved:
+                # Get any consumer to call save_winner
+                    if room._consumers:
+                        any_consumer = next(iter(room._consumers.values()))
+                        await any_consumer.save_winner(room.winner)
+                        room.winner_saved = True
+                        logger.info("[%s] Winner saved: %s", room_id, room.winner)
 
             try:
                 payload = json.dumps({"type": "state", "state": room.to_dict()})

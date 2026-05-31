@@ -184,6 +184,8 @@ class RoomState:
     last_tick_time: float = field(default_factory=time.monotonic, repr=False)
     running:        bool  = False
     winner:         Optional[str] = None   # "left" | "right" | None
+    winner_saved:   bool  = False  # Track if XP/levels have been awarded
+    on_winner_callback: Optional[callable] = field(default=None, repr=False)  # Called when winner determined
     timer:          float = 0.0
 
     # Debug / monitoring
