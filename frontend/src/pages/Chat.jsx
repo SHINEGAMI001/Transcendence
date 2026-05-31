@@ -190,7 +190,7 @@ function Chat() {
     return (
       <div className="min-h-screen bg-dark-bg flex items-center justify-center">
          <div className="flex flex-col items-center gap-4">
-           <div className="w-10 h-10 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
+           <div className="w-10 h-10 border-4 border-violet-400 border-t-transparent rounded-full animate-spin" />
            <p className="text-white/50 text-sm">Connecting to chat...</p>
          </div>
       </div>
@@ -204,7 +204,7 @@ function Chat() {
           <div className="text-4xl mb-4">🔌</div>
           <h2 className="text-xl font-bold text-white mb-2">Connection Error</h2>
           <p className="text-white/50 mb-6">{error}</p>
-          <Link to={`/user/${username}`} className="px-5 py-2.5 bg-white/5 border border-white/10 hover:border-green-400/30 font-semibold rounded-lg transition-all text-white">
+          <Link to={`/user/${username}`} className="px-5 py-2.5 bg-white/5 border border-white/10 hover:border-violet-400/30 font-semibold rounded-lg transition-all text-white">
             ← Back to Profile
           </Link>
         </div>
@@ -216,8 +216,8 @@ function Chat() {
     <div className="min-h-screen bg-dark-bg flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background glow effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 -right-64 w-[500px] h-[500px] bg-green-500/10 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-64 -left-64 w-[500px] h-[500px] bg-green-400/5 rounded-full blur-[120px]" />
+        <div className="absolute top-0 -right-64 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-64 -left-64 w-[500px] h-[500px] bg-violet-400/5 rounded-full blur-[120px]" />
       </div>
 
       <div className="w-full max-w-6xl flex h-[85vh] bg-black/40 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative z-10">
@@ -228,13 +228,13 @@ function Chat() {
           <header className="h-20 bg-white/5 border-b border-white/10 flex items-center px-6 shrink-0 justify-between">
             <div className="flex items-center gap-4">
               <Link to={`/user/${username}`} className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer group">
-                <span className="text-white/50 group-hover:text-green-400 transition-colors">←</span>
+                <span className="text-white/50 group-hover:text-violet-400 transition-colors">←</span>
               </Link>
               <div>
                 <h2 className="text-lg font-bold text-white tracking-wide">{username}</h2>
                 <div className="flex items-center gap-2">
-                   <span className={`w-2 h-2 rounded-full ${receiverStatus.isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
-                   <span className={`text-[10px] uppercase font-bold tracking-widest ${receiverStatus.isOnline ? 'text-green-400/70' : 'text-white/30'}`}>
+                   <span className={`w-2 h-2 rounded-full ${receiverStatus.isOnline ? 'bg-violet-400 animate-pulse' : 'bg-gray-500'}`} />
+                   <span className={`text-[10px] uppercase font-bold tracking-widest ${receiverStatus.isOnline ? 'text-violet-400/70' : 'text-white/30'}`}>
                      {receiverStatus.isOnline ? 'Online' : (receiverStatus.lastSeen ? `Last seen: ${formatDate(receiverStatus.lastSeen)}` : 'Offline')}
                    </span>
                 </div>
@@ -262,7 +262,7 @@ function Chat() {
                     <div 
                       className={`max-w-[80%] px-5 py-3 rounded-2xl shadow-md text-sm break-words whitespace-pre-wrap ${
                         isMe 
-                          ? 'bg-green-600/80 text-white rounded-tr-sm border border-green-500/30' 
+                          ? 'bg-violet-600/80 text-white rounded-tr-sm border border-violet-500/30' 
                           : 'bg-white/5 text-white/90 rounded-tl-sm border border-white/20'
                       }`}
                     >
@@ -287,7 +287,7 @@ function Chat() {
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder="Type your message..."
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-3.5 pl-5 pr-12 text-sm text-white focus:outline-none focus:border-green-400/50 focus:bg-black/60 transition-all placeholder:text-white/30"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-3.5 pl-5 pr-12 text-sm text-white focus:outline-none focus:border-violet-400/50 focus:bg-black/60 transition-all placeholder:text-white/30"
                     autoComplete="off"
                   />
               </form>
@@ -296,7 +296,7 @@ function Chat() {
               type="submit"
               onClick={handleSendMessage}
               disabled={!inputValue.trim()}
-              className="w-12 h-12 rounded-2xl bg-green-500/20 text-green-400 flex items-center justify-center hover:bg-green-500/30 border border-green-500/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+              className="w-12 h-12 rounded-2xl bg-violet-500/20 text-violet-400 flex items-center justify-center hover:bg-violet-500/30 border border-violet-500/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0 cursor-pointer"
             >
               ➤
             </button>
@@ -326,7 +326,7 @@ function Chat() {
                    <Link 
                      key={convId}
                      to={`/chat/${conv.receiver}`}
-                     className={`block p-3 rounded-xl border transition-all ${isActive ? 'bg-green-400/10 border-green-400 flex items-center gap-4' : 'bg-white/5 border-white/10 hover:border-white/30 flex items-center gap-4'}`}
+                     className={`block p-3 rounded-xl border transition-all ${isActive ? 'bg-violet-400/10 border-violet-400 flex items-center gap-4' : 'bg-white/5 border-white/10 hover:border-white/30 flex items-center gap-4'}`}
                    >
                      <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center font-bold text-white shrink-0 relative overflow-hidden">
                         {conv.receiver_avatar ? (
@@ -336,15 +336,15 @@ function Chat() {
                         )}
                      </div>
                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-bold truncate ${isActive ? 'text-green-400' : 'text-white'}`}>{conv.receiver}</p>
+                        <p className={`text-sm font-bold truncate ${isActive ? 'text-violet-400' : 'text-white'}`}>{conv.receiver}</p>
                         {unread && !isActive && (
-                          <p className="text-[10px] text-green-400/70 mt-0.5 truncate">
+                          <p className="text-[10px] text-violet-400/70 mt-0.5 truncate">
                             {unread.count} new message{unread.count > 1 ? 's' : ''}
                           </p>
                         )}
                      </div>
                      {unread && !isActive && (
-                       <span className="w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold text-white flex items-center justify-center shrink-0 animate-pulse">
+                       <span className="w-5 h-5 rounded-full bg-violet-500 text-[10px] font-bold text-white flex items-center justify-center shrink-0 animate-pulse">
                          {unread.count}
                        </span>
                      )}

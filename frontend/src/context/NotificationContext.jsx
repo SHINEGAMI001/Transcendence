@@ -103,18 +103,18 @@ export function NotificationProvider({ children }) {
           <div
             key={popup.id}
             onClick={() => popup.info !== 'game invite' && handlePopupClick(popup)}
-            className={`pointer-events-auto w-full max-w-sm ${popup.info === 'game invite' ? 'border-violet-500/30 shadow-[0_5px_20px_rgba(139,92,246,0.15)] bg-black/80 cursor-default' : 'bg-black/70 border-green-400/30 shadow-[0_5px_20px_rgba(34,197,94,0.15)] cursor-pointer hover:bg-black/80 hover:scale-[1.02]'} backdrop-blur-lg border rounded-xl px-4 py-3 animate-in slide-in-from-top-10 fade-in duration-500 ease-out flex flex-col gap-3 transition-all group`}
+            className={`pointer-events-auto w-full max-w-sm ${popup.info === 'game invite' ? 'border-violet-500/30 shadow-[0_5px_20px_rgba(139,92,246,0.15)] bg-black/80 cursor-default' : 'bg-black/70 border-violet-400/30 shadow-[0_5px_20px_rgba(139,92,246,0.15)] cursor-pointer hover:bg-black/80 hover:scale-[1.02]'} backdrop-blur-lg border rounded-xl px-4 py-3 animate-in slide-in-from-top-10 fade-in duration-500 ease-out flex flex-col gap-3 transition-all group`}
           >
             <div className="flex items-center gap-3 w-full">
                <div className="text-xl group-hover:scale-110 transition-transform">
                  {popup.info === 'friend request' ? '👋' : popup.info === 'game invite' ? '🎮' : '💬'}
                </div>
                <div className="flex-1 min-w-0">
-                 <h4 className={`text-sm font-bold ${popup.info === 'game invite' ? 'text-violet-400' : 'text-green-400'} truncate leading-tight`}>{popup.sender}</h4>
+                 <h4 className={`text-sm font-bold ${popup.info === 'game invite' ? 'text-violet-400' : 'text-violet-400'} truncate leading-tight`}>{popup.sender}</h4>
                  <p className="text-[11px] text-white/70 mt-0.5 truncate leading-tight">{popup.info || 'New message'}</p>
                </div>
             {popup.info !== 'game invite' && (
-                 <div className="text-[10px] text-white/30 group-hover:text-green-400/50 transition-colors">
+                 <div className="text-[10px] text-white/30 group-hover:text-violet-400/50 transition-colors">
                    Open →
                  </div>
                )}

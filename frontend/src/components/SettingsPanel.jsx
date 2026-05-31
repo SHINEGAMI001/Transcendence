@@ -37,6 +37,21 @@ export default function SettingsPanel() {
     dispatchChange({ sfxVolume, musicVolume, sfxMuted, musicMuted })
   }, [sfxVolume, musicVolume, sfxMuted, musicMuted])
 
+  // Close panel on game input or escape
+  useEffect(() => {
+    if (!open) return;
+    
+    const handleKeyDown = (e) => {
+      const keys = ['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Escape'];
+      if (keys.includes(e.key) || keys.includes(e.code)) {
+        setOpen(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   return (
     <>
       {/* Floating settings button */}
@@ -45,30 +60,38 @@ export default function SettingsPanel() {
         title="Settings"
         className="fixed top-5 right-5 z-50 w-12 h-12 rounded-full bg-dark-surface/90 border border-dark-border flex items-center justify-center text-text-primary hover:scale-105 transition-transform"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5">
-          <path fill="currentColor" d="M12 8a4 4 0 100 8 4 4 0 000-8zm8.94 3a1 1 0 00-.11-.3l-1.3-2.25a1 1 0 00-.9-.52h-1.6a7.8 7.8 0 00-.46-1.05l.9-1.46a1 1 0 00-.12-1.2L15.9 1.7a1 1 0 00-1.24-.3l-1.6.78a7.8 7.8 0 00-1.2-.7L10 0H8l-.9 1.2c-.42.21-.82.45-1.2.7L4.3 1.2A1 1 0 003.06 1.5L1.9 3.4a1 1 0 00-.12 1.2l.9 1.46c-.17.35-.3.72-.4 1.1H1.6a1 1 0 00-.9.52L-.3 12.7a1 1 0 00.11.3l1.3 2.25a1 1 0 00.9.52h1.6c.1.38.23.75.4 1.1l-.9 1.46a1 1 0 00.12 1.2l1.16 1.9a1 1 0 001.24.3l1.6-.78c.38.25.78.49 1.2.7L8 24h2l.9-1.2c.42-.21.82-.45 1.2-.7l1.6.78a1 1 0 001.24-.3l1.16-1.9a1 1 0 00-.12-1.2l-.9-1.46c.17-.35.3-.72.46-1.05h1.6a1 1 0 00.9-.52l1.3-2.25a1 1 0 00.11-.3z" />
+        {/* Simple Gear Icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
 
+      {/* Invisible backdrop to close on click outside */}
+      {open && (
+        <div 
+          className="fixed inset-0 z-30" 
+          onClick={() => setOpen(false)}
+        />
+      )}
+
       {/* Sliding panel */}
       <div
-        className={`fixed top-0 right-0 z-40 h-full w-80 bg-dark-surface/95 border-l border-dark-border p-6 transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 z-40 h-full w-64 bg-dark-surface/95 border-l border-dark-border p-5 transition-transform duration-300 shadow-2xl ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">Settings</h3>
-          <button onClick={() => setOpen(false)} className="text-text-muted">✕</button>
+        <div className="flex items-center justify-between mb-6 mt-16">
+          <h3 className="text-lg font-bold tracking-wider">AUDIO</h3>
         </div>
 
         <div className="space-y-6">
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="font-semibold">Sound Effects</p>
-                <p className="text-xs text-text-muted">In-game SFX volume</p>
+                <p className="font-semibold text-sm">Sound Effects</p>
               </div>
               <button
                 onClick={() => setSfxMuted((m) => !m)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${sfxMuted ? 'bg-accent/20 text-accent' : 'bg-dark-border text-text-primary'}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${sfxMuted ? 'bg-accent/20 text-accent' : 'bg-dark-border text-text-primary'}`}
                 title={sfxMuted ? 'Unmute SFX' : 'Mute SFX'}
               >
                 {sfxMuted ? '🔇' : '🔊'}
@@ -80,19 +103,18 @@ export default function SettingsPanel() {
               max="100"
               value={sfxMuted ? 0 : sfxVolume}
               onChange={(e) => { setSfxVolume(Number(e.target.value)); if (sfxMuted && Number(e.target.value) > 0) setSfxMuted(false) }}
-              className="w-full"
+              className="w-full accent-accent"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="font-semibold">Music</p>
-                <p className="text-xs text-text-muted">Background music volume</p>
+                <p className="font-semibold text-sm">Background Music</p>
               </div>
               <button
                 onClick={() => setMusicMuted((m) => !m)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${musicMuted ? 'bg-accent/20 text-accent' : 'bg-dark-border text-text-primary'}`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${musicMuted ? 'bg-accent/20 text-accent' : 'bg-dark-border text-text-primary'}`}
                 title={musicMuted ? 'Unmute Music' : 'Mute Music'}
               >
                 {musicMuted ? '🔈' : '🎵'}
@@ -104,12 +126,8 @@ export default function SettingsPanel() {
               max="100"
               value={musicMuted ? 0 : musicVolume}
               onChange={(e) => { setMusicVolume(Number(e.target.value)); if (musicMuted && Number(e.target.value) > 0) setMusicMuted(false) }}
-              className="w-full"
+              className="w-full accent-accent"
             />
-          </div>
-
-          <div className="pt-4 border-t border-dark-border">
-            <p className="text-xs text-text-muted">Settings are saved locally in your browser.</p>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { getAvatarUrl } from '../utils'
-import lobbyBg from '../assets/homebg.jpg'
+import lobbyBg from '../assets/lobbybackground.jpg'
 
 const SLOTS = 5
 const STORAGE_KEY = 'private_queue_id'
@@ -206,15 +206,17 @@ function PrivateRoom() {
       const sizeClasses = isLarge ? 'w-20 h-20' : 'w-14 h-14';
 
       return (
-         <div className={`${sizeClasses} shrink-0 rounded-full border-2 ${username === user?.username ? 'border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'border-white/20'} overflow-hidden relative bg-black/50 group`}>
-            {avatar ? (
-               <img src={getAvatarUrl(avatar)} className="w-full h-full object-cover" />
-            ) : (
-               <div className="w-full h-full flex items-center justify-center font-bold text-white/50 text-xl">
-                  {username?.[0]}
-               </div>
-            )}
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black px-2 py-1 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+         <div className="flex flex-col items-center gap-2 group">
+            <div className={`${sizeClasses} shrink-0 rounded-full border-2 ${username === user?.username ? 'border-violet-400 shadow-[0_0_20px_rgba(139,92,246,0.3)]' : 'border-white/20'} overflow-hidden relative bg-black/50`}>
+               {avatar ? (
+                  <img src={getAvatarUrl(avatar)} className="w-full h-full object-cover" />
+               ) : (
+                  <div className="w-full h-full flex items-center justify-center font-bold text-white/50 text-xl">
+                     {username?.[0]}
+                  </div>
+               )}
+            </div>
+            <div className="text-[10px] whitespace-nowrap text-white/80 group-hover:text-white transition-colors">
                {username} {username === user?.username && '(You)'}
             </div>
          </div>
@@ -235,14 +237,14 @@ function PrivateRoom() {
    return (
       <div className="min-h-screen text-text-primary flex flex-col relative overflow-hidden">
          <div
-            className="fixed inset-0 bg-cover bg-center bg-no-repeat grayscale-[0.5]"
+            className="fixed inset-0 bg-cover bg-center bg-no-repeat grayscale-[0.5] blur-[3px] scale-[1.02]"
             style={{ backgroundImage: `url(${lobbyBg})` }}
          />
          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
 
          <header className="h-28 border-b border-white/5 bg-black/20 backdrop-blur-md flex items-center shrink-0 px-8 gap-8 relative z-20">
             <button onClick={handleLeaveQueue} className="w-10 h-10 shrink-0 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer group mr-4">
-               <span className="text-white/50 group-hover:text-green-400 transition-colors">←</span>
+               <span className="text-white/50 group-hover:text-violet-400 transition-colors">←</span>
             </button>
 
             <div className="flex flex-col shrink-0 mr-8">
@@ -287,7 +289,7 @@ function PrivateRoom() {
                            <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden relative">
                                  {friend.avatar ? <img src={getAvatarUrl(friend.avatar)} className="w-full h-full object-cover" /> : friend.username[0]}
-                                 <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-black ${friend.isOnline ? 'bg-green-400' : 'bg-gray-500'}`} />
+                                 <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-black ${friend.isOnline ? 'bg-violet-400' : 'bg-gray-500'}`} />
                               </div>
                               <div>
                                  <p className="text-sm font-bold text-white">{friend.username}</p>
@@ -297,7 +299,7 @@ function PrivateRoom() {
                            <button
                               onClick={() => handleInvite(friend.username)}
                               disabled={isInQueue || status === 'pending' || status === 'accepted' || !friend.isOnline}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center min-w-[80px] ${isInQueue ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' :
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center min-w-[80px] ${isInQueue ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30 cursor-default' :
                                     status === 'accepted' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
                                     status === 'pending' ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30' :
                                        friend.isOnline ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' :
@@ -366,7 +368,7 @@ function PrivateRoom() {
          <footer className="h-24 border-t border-white/10 bg-black/80 backdrop-blur-2xl relative z-20 flex items-center px-12 justify-between">
             <div className="flex flex-col">
                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Match Status</span>
-               <span className={`text-sm font-bold italic transition-colors duration-300 ${isGameReady ? 'text-green-400 font-black' : 'text-white/50'}`}>
+               <span className={`text-sm font-bold italic transition-colors duration-300 ${isGameReady ? 'text-violet-400 font-black' : 'text-white/50'}`}>
                   {isGameReady ? 'READY TO START MATCH' : 'TWO PLAYERS MINIMUM (1 PER TEAM)'}
                </span>
             </div>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { getAvatarUrl } from '../utils'
-import lobbyBg from '../assets/homebg.jpg'
+import lobbyBg from '../assets/lobbybackground.jpg'
 
 const SLOTS = 5
 const STORAGE_KEY = 'public_queue_id'
@@ -225,15 +225,17 @@ function CreatePublicRoom() {
       if (!member) return null;
       const sizeClasses = isLarge ? 'w-20 h-20' : 'w-14 h-14';
       return (
-         <div className={`${sizeClasses} shrink-0 rounded-full border-2 ${member.username === user?.username ? 'border-green-400 shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'border-white/20'} overflow-hidden relative bg-black/50 group`}>
-            {member.avatar ? (
-               <img src={getAvatarUrl(member.avatar)} className="w-full h-full object-cover" />
-            ) : (
-               <div className="w-full h-full flex items-center justify-center font-bold text-white/50 text-xl">
-                  {member.username?.[0]}
-               </div>
-            )}
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black px-2 py-1 rounded text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+         <div className="flex flex-col items-center gap-2 group">
+            <div className={`${sizeClasses} shrink-0 rounded-full border-2 ${member.username === user?.username ? 'border-violet-400 shadow-[0_0_20px_rgba(139,92,246,0.3)]' : 'border-white/20'} overflow-hidden relative bg-black/50`}>
+               {member.avatar ? (
+                  <img src={getAvatarUrl(member.avatar)} className="w-full h-full object-cover" />
+               ) : (
+                  <div className="w-full h-full flex items-center justify-center font-bold text-white/50 text-xl">
+                     {member.username?.[0]}
+                  </div>
+               )}
+            </div>
+            <div className="text-[10px] whitespace-nowrap text-white/80 group-hover:text-white transition-colors">
                {member.username} {member.username === user?.username && '(You)'}
             </div>
          </div>
@@ -254,7 +256,7 @@ function CreatePublicRoom() {
    return (
       <div className="min-h-screen text-text-primary flex flex-col relative overflow-hidden">
          <div
-            className="fixed inset-0 bg-cover bg-center bg-no-repeat grayscale-[0.5]"
+            className="fixed inset-0 bg-cover bg-center bg-no-repeat grayscale-[0.5] blur-[3px] scale-[1.02]"
             style={{ backgroundImage: `url(${lobbyBg})` }}
          />
          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
@@ -264,7 +266,7 @@ function CreatePublicRoom() {
                onClick={handleLeaveQueue}
                className="w-10 h-10 shrink-0 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer group mr-4"
             >
-               <span className="text-white/50 group-hover:text-green-400 transition-colors">←</span>
+               <span className="text-white/50 group-hover:text-violet-400 transition-colors">←</span>
             </button>
 
             <div className="flex flex-col shrink-0 mr-8">
@@ -347,7 +349,7 @@ function CreatePublicRoom() {
          <footer className="h-24 border-t border-white/10 bg-black/80 backdrop-blur-2xl relative z-20 flex items-center px-12 justify-between">
             <div className="flex flex-col">
                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Match Status</span>
-               <span className={`text-sm font-bold italic transition-colors duration-300 ${isGameReady ? 'text-green-400 font-black' : 'text-white/50'}`}>
+               <span className={`text-sm font-bold italic transition-colors duration-300 ${isGameReady ? 'text-violet-400 font-black' : 'text-white/50'}`}>
                   {isGameReady ? (isJoinMode ? 'READY TO JOIN MATCH' : 'READY TO CREATE MATCH') : 'SELECT A TEAM TO PROCEED'}
                </span>
             </div>
@@ -363,7 +365,7 @@ function CreatePublicRoom() {
                   disabled={!isGameReady || creating}
                   onClick={isJoinMode ? handleJoinGame : handleCreateGame}
                   className={`px-16 py-4 rounded-xl font-black italic tracking-tighter text-xl transition-all duration-300 ${isGameReady
-                        ? 'bg-green-600 text-white hover:scale-105 shadow-[0_0_40px_rgba(34,197,94,0.4)] active:scale-95 cursor-pointer'
+                        ? 'bg-violet-600 text-white hover:scale-105 shadow-[0_0_40px_rgba(139,92,246,0.4)] active:scale-95 cursor-pointer'
                         : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
                      }`}
                >

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GameCanvas from '../GameCanvas';
 import { useGameSocket } from '../useGameSocket';
+import { useGameSounds } from '../useGameSounds';
+import SettingsPanel from '../components/SettingsPanel';
 import api from '../api';
 import synthwaveBg from '../assets/synthwave_bg.png';
 
@@ -19,6 +21,7 @@ const GameRoom = () => {
     const navigate = useNavigate();
     const [matchInfo, setMatchInfo] = useState(null);
     const { gameState, status, connect, initData, sendMessage, chatMessages, ping } = useGameSocket(roomId);
+    const { playKick } = useGameSounds(gameState, status);
     const [chatInput, setChatInput] = useState('');
     const [isChatHovered, setIsChatHovered] = useState(false);
     const [fps, setFps] = useState(0);
@@ -56,6 +59,18 @@ const GameRoom = () => {
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, []);
+
+    // Kick sound on shoot key
+    useEffect(() => {
+        const handleShootKey = (e) => {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+            if (e.code === 'Space') {
+                playKick();
+            }
+        };
+        window.addEventListener('keydown', handleShootKey);
+        return () => window.removeEventListener('keydown', handleShootKey);
+    }, [playKick]);
 
     useEffect(() => {
         const handleGlobalKeyDown = (e) => {
@@ -220,6 +235,9 @@ const GameRoom = () => {
                     <path d="M20 9 L22.5 12 L20 15" stroke="#f60808ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
             </button>
+
+            {/* Global audio settings */}
+            <SettingsPanel />
 
             {/* Connection status pill */}
             <div style={{
@@ -394,7 +412,7 @@ const styles = {
     statusPill: {
         position: 'absolute',
         top: 20,
-        right: 20,
+        right: 80,
         fontSize: 11,
         padding: '3px 14px',
         borderRadius: 20,
