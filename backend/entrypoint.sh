@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Run database migrations (creates tables on first run)
+echo "Running migrations..."
+python manage.py migrate --noinput
+
 # Collect static files (Django admin CSS/JS, etc.)
 echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear

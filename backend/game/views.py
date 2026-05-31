@@ -5,9 +5,6 @@ from django.contrib.auth import get_user_model
 from .models import Game, Queue, GameInvites
 
 
-def game_home(request):
-    return render(request, "game/index.html")
-
 
 # Create game model and return game id
 @api_view(['POST'])
@@ -586,17 +583,6 @@ def create_queue(request):
         "game_id" : game_id,
     }, status=409)
 
-
-    # if queues.exists():
-    #     return Response({"error message" : "user already in queue",
-    #                      "queue_id" : queues.first().id,
-    #                      "game_id" : game_id if game_id else None}, status=409)
-
-    # if Queue.objects.filter(team_a=request.user).exists() or Queue.objects.filter(team_b=request.user).exists():
-    #     return Response({"error message" : "user already in queue",
-    #                      "queue_id" : queues.first().id,
-    #                      "game_id" : game_id if game_id else None}, status=409)
-    
     queue = Queue.objects.create(
         owner = request.user
     )

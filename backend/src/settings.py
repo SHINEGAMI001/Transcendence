@@ -97,11 +97,6 @@ CORS_ALLOW_ALL_ORIGINS = False
 #prevent reading session cookies with js from browser(XSS attack)
 SESSION_COOKIE_HTTPONLY = True
 
-CSRF_ALLOWED_ORIGINS = [
-    os.getenv("FRONTEND_HOST"), #allow csrf tokens from this domain
-]
-
-
 #allow backend to send cookies to frontend
 SESSION_COOKIE_SAMESITE = "Lax"
 

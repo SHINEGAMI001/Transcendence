@@ -222,19 +222,6 @@ class RoomState:
         if team_players:
             y = ARENA_HEIGHT * 0.3 + len(team_players) * 60
 
-        # """Assign spawn position and team based on join order."""
-        # slot = len(self.players)
-        # if slot == 0:
-        #     x, y = ARENA_WIDTH * 0.20, ARENA_HEIGHT / 2.0
-        #     team = "left"
-        # elif slot == 1:
-        #     x, y = ARENA_WIDTH * 0.80, ARENA_HEIGHT / 2.0
-        #     team = "right"
-        # else:
-        #     # Extra players: alternate teams, offset positions
-        #     team = "left" if slot % 2 == 0 else "right"
-        #     x = ARENA_WIDTH * 0.30 if team == "left" else ARENA_WIDTH * 0.70
-        #     y = ARENA_HEIGHT * 0.3 + (slot - 2) * 60
         p = PlayerState(player_id=player_id, x=x, y=y, team=team_name, name=user.username)
         self.players[player_id] = p
         return p
@@ -255,24 +242,6 @@ class RoomState:
 
     def player_count(self) -> int:
         return len(self.players)
-
-
-    ### BUGG IN THIS RESET VERSION ###
-
-    # def reset_round(self) -> None:
-    #     """Reset positions and ball after a goal."""
-    #     self.ball.reset()
-    #     slots = list(self.players.values())
-    #     if len(slots) > 0:
-    #         slots[0].x = ARENA_WIDTH * 0.20
-    #         slots[0].y = ARENA_HEIGHT / 2.0
-    #     if len(slots) > 1:
-    #         slots[1].x = ARENA_WIDTH * 0.80
-    #         slots[1].y = ARENA_HEIGHT / 2.0
-
-    #
-    ### REPLACED WITH THIS
-    #
     def reset_round(self) -> None:
         self.ball.reset()
 
