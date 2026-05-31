@@ -43,7 +43,7 @@ function FriendItem({ friend }) {
           </div>
           <span
             className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-dark-surface ${
-              isOnline ? 'bg-violet-500' : 'bg-gray-500'
+              isOnline ? 'bg-green-500' : 'bg-gray-500'
             }`}
             title={isOnline ? 'Online' : (lastSeen ? `Last seen: ${formatDate(lastSeen)}` : 'Offline')}
           >
@@ -264,7 +264,7 @@ function Lobby() {
       <main className="flex-1 flex flex-col overflow-hidden relative z-10">
         <header className="h-20 border-b border-white/10 bg-black/40 backdrop-blur-md flex items-center justify-between px-8">
           <div className="flex-1 max-w-md flex items-center gap-4">
-            <h2 className="text-xl font-bold tracking-tight text-violet-400 italic drop-shadow-[0_2px_10px_rgba(139,92,246,0.3)]">⚽ Rarecade — LOBBY</h2>
+            <h2 className="text-xl font-bold tracking-tight text-violet-400 italic drop-shadow-[0_2px_10px_rgba(139,92,246,0.3)]">⚽ Rarcade — LOBBY</h2>
           </div>
           <div className="flex items-center gap-6">
             <button onClick={openNotificationsSidebar} className="relative p-2 text-xl hover:scale-110 transition-transform hover:text-violet-400 cursor-pointer">
@@ -382,7 +382,7 @@ function Lobby() {
         <section className="flex-1 overflow-y-auto flex flex-col items-center justify-center z-10 p-8 pb-16">
           <div className="text-center mb-12 animate-in fade-in duration-700 mt-auto">
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter italic select-none drop-shadow-[0_4px_30px_rgba(139,92,246,0.3)]">
-              CHOOSE YOUR PITCH & JUMP IN TO IT
+              CHOOSE YOUR PITCH & JUMP INTO IT
             </h1>
             <p className="text-white/50 text-sm mt-3 tracking-widest uppercase font-medium">
               Select a game mode to start playing

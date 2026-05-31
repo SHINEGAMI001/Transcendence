@@ -294,7 +294,7 @@ function Profile() {
               {/* Online/Offline status dot */}
               <span
                 className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-dark-surface ${
-                  isOnline ? 'bg-violet-500' : 'bg-gray-500'
+                  isOnline ? 'bg-green-500' : 'bg-gray-500'
                 }`}
                 title={isOnline ? 'Online' : 'Offline'}
               >
@@ -320,7 +320,7 @@ function Profile() {
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      isOnline ? 'bg-violet-400' : 'bg-gray-400'
+                      isOnline ? 'bg-green-400' : 'bg-gray-400'
                     }`}
                   />
                   {isOnline ? 'Online' : 'Offline'}

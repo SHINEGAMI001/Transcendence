@@ -233,8 +233,8 @@ function Chat() {
               <div>
                 <h2 className="text-lg font-bold text-white tracking-wide">{username}</h2>
                 <div className="flex items-center gap-2">
-                   <span className={`w-2 h-2 rounded-full ${receiverStatus.isOnline ? 'bg-violet-400 animate-pulse' : 'bg-gray-500'}`} />
-                   <span className={`text-[10px] uppercase font-bold tracking-widest ${receiverStatus.isOnline ? 'text-violet-400/70' : 'text-white/30'}`}>
+                   <span className={`w-2 h-2 rounded-full ${receiverStatus.isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
+                   <span className={`text-[10px] uppercase font-bold tracking-widest ${receiverStatus.isOnline ? 'text-green-400/70' : 'text-white/30'}`}>
                      {receiverStatus.isOnline ? 'Online' : (receiverStatus.lastSeen ? `Last seen: ${formatDate(receiverStatus.lastSeen)}` : 'Offline')}
                    </span>
                 </div>
