@@ -102,8 +102,23 @@ docker compose up -d nginx backend db
     - [POST] localhost:8000/api/chat/markasseen/
 
 - Game endpoints:
-    - [POST] localhost:8000/api/game/create
-    - [POST] localhost:8000/api/game/join
+    - [POST] localhost:8000/api/game/create/ #logic changed
+    - [POST] localhost:8000/api/game/join/
+    - [GET] localhost:8000/api/game/list/
+    - [POST] localhost:8000/api/game/leave_game/
+    - [POST] localhost:8000/api/game/end_game/
+
+- Game invites endpoints:
+    - [POST] localhost:8000/api/game/invite/
+    - [POST] localhost:8000/api/game/accept/
+    - [POST] localhost:8000/api/game/reject/
+    - [GET] localhost:8000/api/game/list_invites/
+    - [GET] localhost:8000/api/game/invite_status/<int:invite_id>/
+    - [POST] localhost:8000/api/game/create_queue/
+    - [POST] localhost:8000/api/game/choose_team/
+    - [POST] localhost:8000/api/game/leave_queue/
+    - [GET] localhost:8000/api/game/list_queue/<int:queue_id>/
+
 
 ### Backend websocket connection
     - localhost:8000/ws/chat/<int:conversation_id>

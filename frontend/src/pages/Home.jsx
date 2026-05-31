@@ -8,7 +8,7 @@
 
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import welcomeBg from '../assets/Welcome Page for 2D Football Game.png'
+import welcomeBg from '../assets/Welcome.png'
 
 function Home() {
   const { isLoggedIn, loading } = useAuth()
@@ -29,7 +29,7 @@ function Home() {
 
   // --- Welcome Page (unauthenticated) ---
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
+    <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ fontFamily: "'Courier New', monospace" }}>
       {/* Full-screen background image */}
       <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"

@@ -66,6 +66,21 @@ export function AuthProvider({ children }) {
     checkSession()
   }, [])
 
+  // Keep-alive ping to update online status (last_seen)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
+    // Ping every 30 seconds
+    const interval = setInterval(() => {
+      api.get('api/profile/me').catch(() => {
+        // If ping fails (e.g., session expired), we could log out, 
+        // but let's just ignore to prevent erratic logouts on flaky connections.
+      });
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn]);
+
   return (
     <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, loading }}>
       {children}

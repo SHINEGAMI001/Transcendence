@@ -446,12 +446,15 @@ def list_friends(request):
         friends_data = []
         all_friends = request.user.friends.all()
         for friend in all_friends:
+               is_online = False
+               if friend.last_seen:
+                      is_online = (timezone.now() - friend.last_seen) < timedelta(minutes=5)
                friends_data.append({
                       "id" : friend.id,
                       "username" : friend.username,
                       "level" : friend.level,
                       "avatar" : friend.avatar.url,
-
+                      "is_online": is_online
                })
         num_friends = request.user.friends.count()
 
