@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 *.pyo
+frontend/dist/
+nginx/ssl/
