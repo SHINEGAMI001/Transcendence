@@ -232,7 +232,7 @@ function PublicProfile() {
               {/* Online/Offline status dot (matching private profile style) */}
               <span
                 className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-dark-surface ${
-                  isOnline ? 'bg-violet-500' : 'bg-gray-500'
+                  isOnline ? 'bg-green-500' : 'bg-gray-500'
                 }`}
                 title={isOnline ? 'Online' : (lastSeen ? `Last seen: ${formatDate(lastSeen)}` : 'Offline')}
               >

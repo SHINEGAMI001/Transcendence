@@ -191,7 +191,11 @@ function PrivateRoom() {
    }
 
    const handleLeaveQueue = async () => {
-      if (!window.confirm('Are you sure you want to leave the room creation? The queue will be deleted.')) return
+      const isOwner = user?.username === owner;
+      const message = isOwner
+         ? 'Are you sure you want to leave the room creation? The queue will be deleted.'
+         : 'Are you sure you want to leave the queue?';
+      if (!window.confirm(message)) return
       try {
          if (queueId) await api.post('api/game/leave_queue/', { queue_id: queueId })
       } catch (err) { }
@@ -282,14 +286,15 @@ function PrivateRoom() {
                      const status = invites[friend.username]
                      const inA = teamA.includes(friend.username)
                      const inB = teamB.includes(friend.username)
-                     const isInQueue = inA || inB
+                     const isInQueue = participants.some(p => p.username === friend.username)
+                     const inTeam = inA || inB
 
                      return (
                         <div key={friend.username} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
                            <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center text-white/50 font-bold overflow-hidden relative">
                                  {friend.avatar ? <img src={getAvatarUrl(friend.avatar)} className="w-full h-full object-cover" /> : friend.username[0]}
-                                 <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-black ${friend.isOnline ? 'bg-violet-400' : 'bg-gray-500'}`} />
+                                 <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-black ${friend.isOnline ? 'bg-green-400' : 'bg-gray-500'}`} />
                               </div>
                               <div>
                                  <p className="text-sm font-bold text-white">{friend.username}</p>
@@ -306,7 +311,7 @@ function PrivateRoom() {
                                           'bg-transparent text-white/20 cursor-not-allowed'
                                  }`}
                            >
-                              {isInQueue ? 'READY' : 
+                              {isInQueue ? (inTeam ? 'READY' : 'JOINED') : 
                                status === 'accepted' ? (
                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                                ) : status === 'pending' ? 'PENDING' : 'INVITE'}

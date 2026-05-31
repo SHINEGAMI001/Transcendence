@@ -207,7 +207,11 @@ function CreatePublicRoom() {
 
    // Leave queue and navigate away
    const handleLeaveQueue = async () => {
-      if (!window.confirm(`Are you sure you want to leave the queue? ${isJoinMode ? '' : 'The queue will be deleted.'}`)) return
+      const isOwner = user?.username === owner;
+      const message = isOwner
+         ? 'Are you sure you want to leave the room creation? The queue will be deleted.'
+         : 'Are you sure you want to leave the queue?';
+      if (!window.confirm(message)) return
       try {
          if (queueId) {
             await api.post('api/game/leave_queue/', { queue_id: queueId })
