@@ -32,11 +32,6 @@ DOMAIN_HOST = os.getenv('DOMAIN_HOST')
 ALLOWED_HOSTS = [
     DOMAIN_HOST,
     f'www.{DOMAIN_HOST}',
-    'nginx',
-    'backend',
-    'localhost',
-    '127.0.0.1',
-    '192.168.100.76',
 ]
 
 
@@ -74,8 +69,6 @@ MIDDLEWARE = [
 # CORS configuration - fetch from environment
 if DEBUG:
     CORS_ALLOWED_ORIGINS = [
-        'http://localhost:5173',
-        'http://localhost',
         f'https://{DOMAIN_HOST}',
         f'https://www.{DOMAIN_HOST}',
     ]
@@ -83,7 +76,6 @@ else:
     CORS_ALLOWED_ORIGINS = [
         f'https://{DOMAIN_HOST}',
         f'https://www.{DOMAIN_HOST}',
-        'https://192.168.100.76',
     ]
 
 CSRF_TRUSTED_ORIGINS = [

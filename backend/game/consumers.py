@@ -30,7 +30,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # Check if game exists
         game = await self.get_game(self.room_id)
         if not game:
-            self.close(code=4004)
+            await self.close(code=4004)
             return
 
         # Connect user

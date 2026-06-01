@@ -2,8 +2,7 @@ services:
   frontend:
     container_name: frontend
     build: ./frontend
-    # expose: 
-    #   - "5173"
+
     ports:
       - "5173:5173"
     restart: unless-stopped
@@ -14,7 +13,6 @@ services:
       - /fapp/node_modules #keep necessary files on the container for vile to run
     env_file:
       - .env
-      # - ./.env:/.env:ro  #make .env visible to Vite (envDir: '..' resolves to /)
 
   backend:
     container_name: backend
@@ -52,7 +50,6 @@ services:
     restart: on-failure
     volumes:
       - db_data:/var/lib/postgresql/18/docker
-    #port for postgres 5432
 
 volumes:
   db_data:
