@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+frontend/dist/
+nginx/ssl/
+.env
+.env.production
+backend/db.sqlite3
+backend/media/avatars/
+.vscode/
