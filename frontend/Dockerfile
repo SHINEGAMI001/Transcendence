@@ -2,12 +2,14 @@ FROM node:latest
 
 WORKDIR /fapp
 
-COPY package.json .
+COPY package.json package-lock.json ./
 
 RUN npm install
 
 COPY . .
 
-# EXPOSE 5173
+# Build production bundle
+RUN npm run build
 
-CMD ["npm", "run", "dev", "--", "--host"]
+# Keep container running (Nginx serves dist in production)
+CMD ["sleep", "infinity"]

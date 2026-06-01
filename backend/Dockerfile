@@ -8,6 +8,11 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput
+RUN mkdir -p /bapp/staticfiles
 
-CMD ["uvicorn", "src.asgi:application", "--host", "0.0.0.0", "--port" , "8000", "--reload"]
+# Copy entrypoint script
+COPY entrypoint.sh /bapp/
+RUN chmod +x /bapp/entrypoint.sh
+
+# Run entrypoint which collects static files and starts server
+CMD ["/bin/bash", "/bapp/entrypoint.sh"]

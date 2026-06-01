@@ -52,6 +52,7 @@ class PlayerState:
     y: float
     team: str = "left"   # "left" or "right"
     radius: float = PLAYER_RADIUS
+    name: str = ""
 
     # Live input flags — written by consumer layer, read by engine each tick.
     up:    bool = False
@@ -67,6 +68,7 @@ class PlayerState:
     def to_dict(self) -> dict:
         return {
             "id": self.player_id,
+            "n":  self.name,
             "x":  round(self.x, 1),
             "y":  round(self.y, 1),
             "r":  self.radius,
@@ -182,6 +184,9 @@ class RoomState:
     last_tick_time: float = field(default_factory=time.monotonic, repr=False)
     running:        bool  = False
     winner:         Optional[str] = None   # "left" | "right" | None
+    winner_saved:   bool  = False  # Track if XP/levels have been awarded
+    on_winner_callback: Optional[callable] = field(default=None, repr=False)  # Called when winner determined
+    timer:          float = 0.0
 
     # Debug / monitoring
     stats: TickStats = field(default_factory=TickStats, repr=False)
@@ -191,11 +196,16 @@ class RoomState:
     _consumers: Dict[str, 'GameConsumer'] = field(default_factory=dict, repr=False)
 
     def to_dict(self) -> dict:
+        # Format timer to MM:SS
+        tm_sec = int(self.timer)
+        timer_str = f"{tm_sec // 60:02d}:{tm_sec % 60:02d}"
+
         return {
             "players": {pid: p.to_dict() for pid, p in self.players.items()},
             "ball":    self.ball.to_dict(),
             "score":   self.score.to_dict(),
             "winner":  self.winner,
+            "timer":   timer_str,
         }
 
     def add_player(self, player_id: str, user, team: str) -> PlayerState:
@@ -212,20 +222,7 @@ class RoomState:
         if team_players:
             y = ARENA_HEIGHT * 0.3 + len(team_players) * 60
 
-        # """Assign spawn position and team based on join order."""
-        # slot = len(self.players)
-        # if slot == 0:
-        #     x, y = ARENA_WIDTH * 0.20, ARENA_HEIGHT / 2.0
-        #     team = "left"
-        # elif slot == 1:
-        #     x, y = ARENA_WIDTH * 0.80, ARENA_HEIGHT / 2.0
-        #     team = "right"
-        # else:
-        #     # Extra players: alternate teams, offset positions
-        #     team = "left" if slot % 2 == 0 else "right"
-        #     x = ARENA_WIDTH * 0.30 if team == "left" else ARENA_WIDTH * 0.70
-        #     y = ARENA_HEIGHT * 0.3 + (slot - 2) * 60
-        p = PlayerState(player_id=player_id, x=x, y=y, team=team)
+        p = PlayerState(player_id=player_id, x=x, y=y, team=team_name, name=user.username)
         self.players[player_id] = p
         return p
 
@@ -245,18 +242,29 @@ class RoomState:
 
     def player_count(self) -> int:
         return len(self.players)
-
     def reset_round(self) -> None:
-        """Reset positions and ball after a goal."""
         self.ball.reset()
-        slots = list(self.players.values())
-        if len(slots) > 0:
-            slots[0].x = ARENA_WIDTH * 0.20
-            slots[0].y = ARENA_HEIGHT / 2.0
-        if len(slots) > 1:
-            slots[1].x = ARENA_WIDTH * 0.80
-            slots[1].y = ARENA_HEIGHT / 2.0
 
+        left_players = [p for p in self.players.values() if p.team == "left"]
+        right_players = [p for p in self.players.values() if p.team == "right"]
+
+        # Left team respawn
+        for i, player in enumerate(left_players):
+            player.x = ARENA_WIDTH * 0.20
+
+            if len(left_players) == 1:
+                player.y = ARENA_HEIGHT / 2.0
+            else:
+                player.y = ARENA_HEIGHT * 0.3 + i * 60
+
+        # Right team respawn
+        for i, player in enumerate(right_players):
+            player.x = ARENA_WIDTH * 0.80
+
+            if len(right_players) == 1:
+                player.y = ARENA_HEIGHT / 2.0
+            else:
+                player.y = ARENA_HEIGHT * 0.3 + i * 60
 
 # ─── Global room registry ─────────────────────────────────────────────────────
 # asyncio is cooperative/single-threaded: plain dict reads between awaits are

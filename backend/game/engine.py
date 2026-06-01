@@ -201,19 +201,6 @@ def tick(room: RoomState, dt: float) -> None:
 
     # --- 1. ARCADE AUTO-RESTART LOGIC ---
     if room.winner:
-        # If there's a winner, start a 4-second countdown timer
-        # if not hasattr(room, 'win_timer'):
-        #     room.win_timer = 4.0
-        # room.win_timer -= dt
-
-        # # When timer hits zero, reset everything!
-        # if room.win_timer <= 0:
-        #     room.winner = None
-        #     room.score.left = 0
-        #     room.score.right = 0
-        #     del room.win_timer
-        #     room.reset_round()
-
         # End game when there is a winner
         room.running = False
         
@@ -237,6 +224,7 @@ def tick(room: RoomState, dt: float) -> None:
     # ------------------------------------
 
     # 2. Normal physics (only runs if there is no winner)
+    room.timer += dt
     for player in player_list:
         update_player(player, dt)
 

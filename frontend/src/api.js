@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 // Centralized API configuration using environment variables with fallbacks
-export const BACKEND_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const envOrigin = (import.meta.env.VITE_API_URL || '').trim()
+const browserOrigin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
+export const BACKEND_ORIGIN = envOrigin || browserOrigin || 'http://localhost:8000'
 export const API_BASE = BACKEND_ORIGIN.endsWith('/') ? BACKEND_ORIGIN : `${BACKEND_ORIGIN}/`
 
 /**

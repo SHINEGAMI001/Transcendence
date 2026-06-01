@@ -237,7 +237,7 @@ function PublicProfile() {
                 title={isOnline ? 'Online' : (lastSeen ? `Last seen: ${formatDate(lastSeen)}` : 'Offline')}
               >
                 {isOnline && (
-                  <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+                  <span className="absolute inset-0 rounded-full bg-violet-400 animate-ping opacity-75" />
                 )}
               </span>
             </div>
@@ -258,7 +258,7 @@ function PublicProfile() {
                 <div className="mt-5 flex flex-wrap gap-3 justify-center sm:justify-start">
                   {friendStatus === 'friend' && (
                     <>
-                      <Link to={`/chat/${user?.username}`} className="px-4 py-2 text-sm font-semibold rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 transition-all">
+                      <Link to={`/chat/${user?.username}`} className="px-4 py-2 text-sm font-semibold rounded-lg bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30 transition-all">
                         Message
                       </Link>
                       <button onClick={handleRemoveFriend} disabled={actionLoading} className="px-4 py-2 text-sm font-semibold rounded-lg bg-error/10 text-error hover:bg-error/20 border border-error/30 transition-all cursor-pointer disabled:opacity-50">

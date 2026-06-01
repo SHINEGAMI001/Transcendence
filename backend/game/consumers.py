@@ -30,7 +30,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # Check if game exists
         game = await self.get_game(self.room_id)
         if not game:
-            self.close(code=4004)
+            await self.close(code=4004)
             return
 
         # Connect user
@@ -74,27 +74,35 @@ class GameConsumer(AsyncWebsocketConsumer):
         # New user joins
         if msg_type == "join":
             team = msg.get("team")
-
-            if team not in ["team_a", "team_b"]:
-                await self.send(text_data = json.dumps({
-                    "type" : "error",
-                    "message" : "invalid team"
-                }))
-            # Check if user in team
             game = await self.get_game(self.room_id)
-            is_valid = await self.check_team(game, self.user, team)
-
-            if not is_valid:
-                await self.send(text_data=json.dumps({
-                    "type" : "error",
-                    "message" : "user not in this team"
-                }))
-                return
+            
+            # If team is not provided or invalid, check database for user's assigned team
+            if team not in ["team_a", "team_b"]:
+                is_a = await self.check_team(game, self.user, "team_a")
+                if is_a: team = "team_a"
+                else:
+                    is_b = await self.check_team(game, self.user, "team_b")
+                    if is_b: team = "team_b"
+                    else:
+                        await self.send(text_data=json.dumps({"type": "error", "message": "user not in any team for this game"}))
+                        return
+            else:
+                # Validate that they are actually in the team they claim
+                is_valid = await self.check_team(game, self.user, team)
+                if not is_valid:
+                    # Try the other team just in case of mismatch
+                    other = "team_b" if team == "team_a" else "team_a"
+                    is_other = await self.check_team(game, self.user, other)
+                    if is_other:
+                        team = other
+                    else:
+                        await self.send(text_data=json.dumps({"type": "error", "message": "user not in this team"}))
+                        return
             
             room = await get_or_create_room(self.room_id)
             try:
                 # register player for stats
-                room.add_player(self.user.id, self.user, team)
+                room.add_player(self.player_id, self.user, team)
                 room.register_consumer(self.player_id, self)
 
                 # send init message
@@ -139,7 +147,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             if room:
                 payload = json.dumps({
                     "type": "chat", 
-                    "sender": self.player_id, 
+                    "sender": self.user.username, 
                     "text": text
                 })
                 # Broadcast the message to everyone in the room instantly
@@ -206,18 +214,18 @@ class GameConsumer(AsyncWebsocketConsumer):
                 users.xp += 100
                 users.level = (users.xp // 100) + 1
                 users.save()
-            for users in game.team_b:
+            for users in game.team_b.all():
                 users.losses += 1
                 users.xp += 10
                 users.level = (users.xp // 100) + 1
                 users.save()
         else:
-            for users in game.team_b:
+            for users in game.team_b.all():
                 users.wins += 1
                 users.xp += 100
                 users.level = (users.xp // 100) + 1
                 users.save()
-            for users in game.team_a:
+            for users in game.team_a.all():
                 users.losses += 1
                 users.xp += 10
                 users.level = (users.xp // 100) + 1
@@ -241,6 +249,14 @@ async def _game_loop(room):
                     tick(room, dt)
                 except Exception:
                     logger.exception("[%s] tick() error", room_id)
+                # save winner and loser stats
+                if room.winner and not room.winner_saved:
+                # Get any consumer to call save_winner
+                    if room._consumers:
+                        any_consumer = next(iter(room._consumers.values()))
+                        await any_consumer.save_winner(room.winner)
+                        room.winner_saved = True
+                        logger.info("[%s] Winner saved: %s", room_id, room.winner)
 
             try:
                 payload = json.dumps({"type": "state", "state": room.to_dict()})

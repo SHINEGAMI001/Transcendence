@@ -299,7 +299,7 @@ function Profile() {
                 title={isOnline ? 'Online' : 'Offline'}
               >
                 {isOnline && (
-                  <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+                  <span className="absolute inset-0 rounded-full bg-violet-400 animate-ping opacity-75" />
                 )}
               </span>
             </div>
@@ -314,7 +314,7 @@ function Profile() {
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                     isOnline
-                      ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                      ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
                       : 'bg-gray-500/15 text-gray-400 border border-gray-500/30'
                   }`}
                 >
@@ -383,7 +383,7 @@ function Profile() {
               <div
                 className={`p-3 rounded-lg text-sm font-medium ${
                   editMessage.type === 'success'
-                    ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                    ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
                     : 'bg-red-500/15 text-red-400 border border-red-500/30'
                 }`}
               >

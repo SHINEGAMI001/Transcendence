@@ -23,6 +23,7 @@ import { Routes, Route } from 'react-router-dom'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import Home from './pages/Home'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import Profile from './pages/Profile'
 import Search from './pages/Search'
 import PublicProfile from './pages/PublicProfile'
@@ -31,6 +32,7 @@ import Chat from './pages/Chat'
 import PublicRoom from './pages/PublicRoom'
 import PrivateRoom from './pages/PrivateRoom'
 import CreatePublicRoom from './pages/CreatePublicRoom'
+import GameRoom from './pages/GameRoom'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -41,6 +43,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
       {/* Protected routes — only accessible when logged in */}
       {/* ProtectedRoute checks auth state and either renders
@@ -54,6 +57,7 @@ function App() {
         <Route path="/room/public" element={<PublicRoom />} />
         <Route path="/room/private" element={<PrivateRoom />} />
         <Route path="/room/create" element={<CreatePublicRoom />} />
+        <Route path="/game/:roomId" element={<GameRoom />} />
       </Route>
       {/* Catch-all: show NotFound page for unknown routes */}
       <Route path="*" element={<NotFound />} />

@@ -22,12 +22,17 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7pjni-x$we#2$5e&@b98n6fovjxl1y87d%ld+=57_$clxm5s7t'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+# Get domain from environment
+DOMAIN_HOST = os.getenv('DOMAIN_HOST')
+ALLOWED_HOSTS = [
+    DOMAIN_HOST,
+    f'www.{DOMAIN_HOST}',
+]
 
 
 # Application definition
@@ -61,30 +66,43 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    os.getenv("FRONTEND_HOST"), # allow frontend react connection
-]
+# CORS configuration - fetch from environment
+if DEBUG:
+    CORS_ALLOWED_ORIGINS = [
+        f'https://{DOMAIN_HOST}',
+        f'https://www.{DOMAIN_HOST}',
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        f'https://{DOMAIN_HOST}',
+        f'https://www.{DOMAIN_HOST}',
+    ]
 
 CSRF_TRUSTED_ORIGINS = [
-    os.getenv("FRONTEND_HOST"),
+    f'https://{DOMAIN_HOST}',
+    f'https://www.{DOMAIN_HOST}',
 ]
 
 #allow creds from frontend (required for cookies)
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
 #prevent reading session cookies with js from browser(XSS attack)
 SESSION_COOKIE_HTTPONLY = True
-
-CSRF_ALLOWED_ORIGINS = [
-    os.getenv("FRONTEND_HOST"), #allow csrf tokens from this domain
-]
-
 
 #allow backend to send cookies to frontend
 SESSION_COOKIE_SAMESITE = "Lax"
 
 #allow backend to send cookies over http, True if https
-SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = not DEBUG
+
+# Production security headers
+SECURE_SSL_REDIRECT = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# Trust X-Forwarded-Proto header from Nginx reverse proxy
+# This prevents redirect loops when nginx proxies HTTPS to HTTP internally
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 ROOT_URLCONF = 'src.urls'
 
