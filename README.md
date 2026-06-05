@@ -50,59 +50,70 @@ SECRET_KEY=your-secret-key-here
 DEBUG=False
 ```
 
-### Running with Docker Compose (Recommended)
+### Running with Docker Compose
 
-3. Build and start all services in detached mode:
+1. Build static files manually for nginx to find
+```bash
+docker compose run --rm frontend npm run build
+```
+
+2. Build and start all services in detached mode:
 ```bash
 docker compose up --build -d
 ```
 
-4. Create a Django superuser (optional, for admin panel access):
+3. Create a Django superuser (optional, for admin panel access):
 ```bash
 docker exec -it backend bash
 python manage.py createsuperuser
 exit
 ```
 
-5. Run database migrations:
+4. Run database migrations (Optional, if you changed anything in database structure ):
 ```bash
 docker exec -it backend python manage.py migrate
 ```
 
-6. Access the application:
+5. Access the application:
 - Frontend (via Nginx): `https://localhost` or `http://localhost`
 - Backend API: `http://localhost:8000`
 - Admin panel: `http://localhost:8000/admin`
 
-7. To stop the stack:
+6. To stop the stack:
 ```bash
 docker compose down
 ```
 
-### Running the Frontend in Development Mode
+### Running with Makefile (Recommended)
 
-From the `frontend/` directory:
+1. Build static files for nginx first
 ```bash
-npm install
-npm run dev
-```
-The frontend dev server runs on `http://localhost:5173`.
-
-### Building the Frontend for Production
-
-```bash
-docker compose run --rm frontend npm run build
+make static
 ```
 
-### Self-Signed SSL Certificates
-
-For local HTTPS, generate self-signed certificates and place them in `nginx/ssl/`:
+2. Build the containers in detach mode
 ```bash
-mkdir -p nginx/ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/rarcade.io.key \
-  -out nginx/ssl/rarcade.io.crt \
-  -subj "/CN=localhost"
+make up
+```
+
+3. Restart the containers
+```bash
+make restart
+```
+
+3. Stop and remove the containers the containers
+```bash
+make down
+```
+
+4. Clean all cashe and images
+```bash
+make clean
+```
+
+5. More usefull commands
+```bash
+make #for more commands
 ```
 
 ## Resources
@@ -175,7 +186,6 @@ The frontend uses a context-based state management pattern (`AuthContext`, `Noti
 - **Django REST Framework** — REST API serialization and viewsets
 - **Django Channels** — WebSocket support with an ASGI interface
 - **Uvicorn** — ASGI server for Channels
-- **Channels-Redis** — Channel layer for WebSocket group messaging
 - **PostgreSQL** (via `psycopg2-binary`) — Primary relational database
 - **Pillow** — Image processing for user avatars
 - **Whitenoise** — Serving static files in production

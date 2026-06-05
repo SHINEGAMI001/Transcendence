@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 *.pyo
 frontend/dist/
+frontend/node_modules
 nginx/ssl/
 .env
 .env.production
